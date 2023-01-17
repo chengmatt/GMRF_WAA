@@ -3,6 +3,7 @@
 # Date: 1.15.23
 
 # set up ------------------------------------------------------------------
+setwd(R'(C:\Users\James.Thorson\Desktop\Git\Triple_Separability)')
 
 library(here)
 library(tidyverse)
@@ -33,10 +34,10 @@ years <- waa_df$year
 ages <- parse_number(colnames(waa_df)[-1])
 
 # Read in data weight at age matrix
-WAA <- as.vector(as.matrix(waa_df[,-1])) # removing first col (year column)
+X_at <- t(as.matrix(waa_df[,-1])) # removing first col (year column)
 
 # Read in standard deviations for weight at age matrix
-WAA_std <- as.vector(as.matrix(waa_std_df[,-1])) # removing first col (year column)
+Xse_at <- t(as.matrix(waa_std_df[,-1])) # removing first col (year column)
 
 # Create an index for ages and years to feed into TMB, which helps construct the precision matrix
 ay_Index <- as.matrix(expand.grid("age" = seq_len(length(ages)), 
@@ -46,23 +47,41 @@ ay_Index <- as.matrix(expand.grid("age" = seq_len(length(ages)),
 # Set up TMB Model --------------------------------------------------------
 
 # Now, input these components into a data list
-data <- list(years = years, ages = ages,
-             WAA = WAA, WAA_std = WAA_std,  
-             ay_Index = ay_Index)
+data <- list( years = years,
+              ages = ages,
+              X_at = X_at,
+              Xse_at = Xse_at,
+              ay_Index = ay_Index )
 
 # Input parameters into a list
-parameters <- list(rho_y = rbeta(1, 1, 1), rho_a = rbeta(1, 1, 1),
-                   rho_c = rbeta(1, 1, 1), log_sigma2 = rbeta(1, 1, 1),
-                   WAA_re = rnorm(length(as.vector(WAA)), 1, 0.1))
+parameters <- list( rho_y = rbeta(1, 1, 1),
+                    rho_a = rbeta(1, 1, 1),
+                    rho_c = rbeta(1, 1, 1),
+                    log_sigma2 = rbeta(1, 1, 1),
+                    ln_L0 = log(0.1),
+                    ln_Linf = log(1),  # Change to reasonable value, only a*Linf is identified using WAA data
+                    ln_k = log(0.2),
+                    ln_alpha = log(1),
+                    ln_beta = log(3),   # Fix at isometric
+                    Y_at = array(0,dim=dim(X_at)) )
+
+#
+map = list( "ln_Linf" = factor(NA),
+            "ln_beta" = factor(NA) )
 
 # Now, make AD model function
 waa_model <- MakeADFun(data = data, parameters = parameters, 
-                       random = "WAA_re",
-                       DLL = "triple_sep_waa")
+                       random = "Y_at",
+                       DLL = "triple_sep_waa",
+                       map = map)
+report = waa_model$report()
+report$mu_at
 
 # Now, optimize the function
 waa_optim <- stats::nlminb(waa_model$par, waa_model$fn, waa_model$gr,  
                            control = list(iter.max = 1e5, eval.max = 1e5))
+report = waa_model$report()
+report$mu_at
 
 # Get report
 waa_model$rep <- waa_model$report(waa_model$env$last.par.best)
@@ -80,13 +99,21 @@ max(abs(sd_rep$gradient.fixed))
 waa_model$rep$jnLL # joint nLL seems very large...
 waa_optim$objective 
 
+# Plot covariance
+Q = waa_model$report()$Q
+V = solve(Q)
+R = cov2cor(V)
+P_at = matrix( R[,14], nrow=length(ages), ncol=length(years) )
+image(t(P_at))
+
 # Extract values ----------------------------------------------------------
 
 # Extract WAA random effects
-WAA_re <- matrix(
-  sd_rep$par.random[names(sd_rep$par.random) == "WAA_re"],
-  ncol = length(ages), nrow = length(years)
-)
+#WAA_re <- matrix(
+#  sd_rep$par.random[names(sd_rep$par.random) == "WAA_re"],
+#  ncol = length(ages), nrow = length(years)
+#)
+WAA_re <- t(waa_model$env$parList()$Y_at)
 
 # Munge WAA for plotting
 WAA_re <- reshape2::melt(WAA_re) 
