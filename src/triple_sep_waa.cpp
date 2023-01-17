@@ -20,8 +20,8 @@ Type objective_function<Type>::operator() ()
   int total_n = n_years * n_ages; // integer for nyears * nages
   
   // Define matrices for weight-at-age 
-  DATA_VECTOR(WAA); // n_years * n_ages
-  DATA_VECTOR(WAA_std); // n_years * n_ages
+  DATA_MATRIX(X_at); // n_years * n_ages
+  DATA_MATRIX(Xse_at); // n_years * n_ages
   
   // Index matrix to loop through to consruct precision matrix
   DATA_MATRIX(ay_Index);  // (n_years * n_ages) * 2 
@@ -31,7 +31,12 @@ Type objective_function<Type>::operator() ()
   PARAMETER(rho_y); // Correlation by year
   PARAMETER(rho_c); // Correlation by cohort
   PARAMETER(log_sigma2); // Variance of the GMRF process
-  PARAMETER_VECTOR(WAA_re); // Random effects for weight-at-age vector
+  PARAMETER( ln_L0 );
+  PARAMETER( ln_Linf );
+  PARAMETER( ln_k );
+  PARAMETER( ln_alpha );
+  PARAMETER( ln_beta );
+  PARAMETER_ARRAY(Y_at); // Random effects for weight-at-age vector
   
   // Construct matrix for B (neighborhood)
   matrix<Type> B(total_n,total_n); 
@@ -106,12 +111,28 @@ Type objective_function<Type>::operator() ()
   Type jnLL = 0;
 
   // LIKELIHOOD SECTION ------------------------
+  array<Type> mu_at(Y_at.rows(), Y_at.cols());
+  Type L0 = exp(ln_L0);
+  Type Linf = exp(ln_Linf);
+  Type k = exp(ln_k);
+  Type alpha = exp(ln_alpha);
+  Type beta = exp(ln_beta);
+  for(int a = 0; a < X_at.rows(); a++) {
+  for(int t = 0; t < X_at.cols(); t++) {
+    mu_at(a,t) = Linf - (Linf-L0)*exp(-k*Type(a));
+    mu_at(a,t) = alpha * pow( mu_at(a,t), beta );
+  }}
+
   // Evaluate WAA data likelihood
-  for(int a = 0; a < WAA.size(); a++) {
-    jnLL -= dnorm(WAA(a), WAA_re(a), WAA_std(a), true);
-  }
+  for(int a = 0; a < X_at.rows(); a++) {
+  for(int t = 0; t < X_at.cols(); t++) {
+    jnLL -= dnorm(Y_at(a,t), X_at(a,t), Xse_at(a,t), true);
+  }}
+
   // Evaluate GMRF with precision matrix estimating cohort, year, and age correlations
-  jnLL += GMRF(Q_sparse)(WAA_re);
+  array<Type> eps_at(Y_at.rows(), Y_at.cols());
+  eps_at = Y_at - mu_at;
+  jnLL += GMRF(Q_sparse)( eps_at );
 
   // REPORT SECTION ------------------------
   REPORT(jnLL);
@@ -119,6 +140,7 @@ Type objective_function<Type>::operator() ()
   REPORT(I);
   REPORT(B);
   REPORT(Omega);
+  REPORT( mu_at );
 
   return(jnLL);
   
