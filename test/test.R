@@ -54,9 +54,9 @@ data <- list( years = years,
               ay_Index = ay_Index )
 
 # Input parameters into a list
-parameters <- list( rho_y = rbeta(1, 1, 1),
-                    rho_a = rbeta(1, 1, 1),
-                    rho_c = rbeta(1, 1, 1),
+parameters <- list( rho_y = 0,
+                    rho_a = 0,
+                    rho_c = 0,
                     log_sigma2 = rbeta(1, 1, 1),
                     ln_L0 = log(0.1),
                     ln_Linf = log(1),  # Change to reasonable value, only a*Linf is identified using WAA data
@@ -67,7 +67,7 @@ parameters <- list( rho_y = rbeta(1, 1, 1),
 
 # Turn params off
 map = list( "ln_Linf" = factor(NA),
-            "ln_beta" = factor(NA) )
+            "ln_beta" = factor(NA))
 
 # Now, make AD model function
 waa_model <- MakeADFun(data = data, parameters = parameters, 
@@ -92,10 +92,7 @@ tryCatch(expr = for(i in 1:n.newton) {
 }, error = function(e){e})
 
 report = waa_model$report()
-plot(report$mu_at[,1])
-
-# Get report
-waa_model$rep <- waa_model$report(waa_model$env$last.par.best)
+plot(report$mu_at[,1], type = "l")
 
 # Get sd report
 sd_rep <- sdreport(waa_model)
@@ -107,14 +104,18 @@ Matrix::image(waa_model$env$spHess(random=TRUE))
 waa_optim$convergence == 0 
 sd_rep$pdHess == TRUE  
 max(abs(sd_rep$gradient.fixed))
-waa_model$rep$jnLL 
+waa_model$report()$jnLL 
 waa_optim$objective 
 
 # Plot covariance
+I = waa_model$report()$I
+B = waa_model$report()$B
+Omega = waa_model$report()$Omega
+Q_man = (I * t(B)) %*% Omega %*% (I-B)
 Q = waa_model$report()$Q
 V = solve(Q)
 R = cov2cor(V)
-P_at = matrix( R[,14], nrow=length(ages), ncol=length(years) )
+P_at = matrix( R[,5], nrow=length(ages), ncol=length(years) )
 image(t(P_at))
 
 # Extract values ----------------------------------------------------------
@@ -145,8 +146,7 @@ WAA_all <- rbind(WAA_emp, WAA_re)
 
 # Visualize! --------------------------------------------------------------
 
-ggplot(WAA_all %>% 
-         filter(Type == "Random"), 
+ggplot(WAA_all %>% filter(Type == "Random"), 
        aes(x = factor(ages), y = factor(yrs), fill = vals)) +
   geom_tile(alpha = 0.9) +
   scale_x_discrete(breaks = seq(3, 15, 3)) +
@@ -160,3 +160,16 @@ ggplot(WAA_all %>%
         axis.text = element_text(size = 15),
         legend.title = element_text(size = 17),
         legend.text = element_text(size = 15))
+
+ggplot(WAA_all %>% filter(Type == "Random"), 
+       aes(x = factor(yrs), y = vals, color = factor(ages),
+           group = factor(ages))) +
+  geom_text(aes(label=round(ages,2)), size = 4.5) +
+  geom_line(alpha = 0.85) +
+  theme_bw() +
+  labs(x = "Year", y = "Weight") +
+  theme(axis.title = element_text(size = 17),
+        axis.text = element_text(size = 15),
+        legend.title = element_text(size = 17),
+        legend.text = element_text(size = 15),
+        legend.position = "none")
