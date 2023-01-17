@@ -130,8 +130,8 @@ Type objective_function<Type>::operator() ()
   }}
 
   // Evaluate GMRF with precision matrix estimating cohort, year, and age correlations
-  array<Type> eps_at(Y_at.rows(), Y_at.cols());
-  eps_at = Y_at - mu_at;
+  array<Type> eps_at(Y_at.rows(), Y_at.cols()); // matrix of process errors
+  eps_at = Y_at - mu_at; // errors relative to the mean across age and time
   jnLL += GMRF(Q_sparse)( eps_at );
 
   // REPORT SECTION ------------------------

@@ -3,7 +3,7 @@
 # Date: 1.15.23
 
 # set up ------------------------------------------------------------------
-setwd(R'(C:\Users\James.Thorson\Desktop\Git\Triple_Separability)')
+# setwd(R'(C:\Users\James.Thorson\Desktop\Git\Triple_Separability)')
 
 library(here)
 library(tidyverse)
@@ -65,7 +65,7 @@ parameters <- list( rho_y = rbeta(1, 1, 1),
                     ln_beta = log(3),   # Fix at isometric
                     Y_at = array(0,dim=dim(X_at)) )
 
-#
+# Turn params off
 map = list( "ln_Linf" = factor(NA),
             "ln_beta" = factor(NA) )
 
@@ -74,14 +74,25 @@ waa_model <- MakeADFun(data = data, parameters = parameters,
                        random = "Y_at",
                        DLL = "triple_sep_waa",
                        map = map)
+
 report = waa_model$report()
-report$mu_at
+plot(report$mu_at[,1])
 
 # Now, optimize the function
 waa_optim <- stats::nlminb(waa_model$par, waa_model$fn, waa_model$gr,  
                            control = list(iter.max = 1e5, eval.max = 1e5))
+
+n.newton <- 3
+# Take some additional newton steps to make sure we reach a minimum
+tryCatch(expr = for(i in 1:n.newton) {
+  g = as.numeric(waa_model$gr(waa_optim$par))
+  h = optimHess(waa_optim$par, fn = waa_model$fn, gr = waa_model$gr)
+  waa_optim$par = waa_optim$par - solve(h,g)
+  waa_optim$objective = waa_model$fn(waa_optim$par)
+}, error = function(e){e})
+
 report = waa_model$report()
-report$mu_at
+plot(report$mu_at[,1])
 
 # Get report
 waa_model$rep <- waa_model$report(waa_model$env$last.par.best)
@@ -96,7 +107,7 @@ Matrix::image(waa_model$env$spHess(random=TRUE))
 waa_optim$convergence == 0 
 sd_rep$pdHess == TRUE  
 max(abs(sd_rep$gradient.fixed))
-waa_model$rep$jnLL # joint nLL seems very large...
+waa_model$rep$jnLL 
 waa_optim$objective 
 
 # Plot covariance
@@ -109,17 +120,12 @@ image(t(P_at))
 # Extract values ----------------------------------------------------------
 
 # Extract WAA random effects
-#WAA_re <- matrix(
-#  sd_rep$par.random[names(sd_rep$par.random) == "WAA_re"],
-#  ncol = length(ages), nrow = length(years)
-#)
 WAA_re <- t(waa_model$env$parList()$Y_at)
 
 # Munge WAA for plotting
 WAA_re <- reshape2::melt(WAA_re) 
 colnames(WAA_re) <- c("yrs", "ages", "vals")
-WAA_re <- WAA_re %>% 
-  mutate(Type = "Random")
+WAA_re <- WAA_re %>% mutate(Type = "Random")
 
 # Get mean predicted weights
 mean_wt_re <- mean(WAA_re$vals)
@@ -139,7 +145,9 @@ WAA_all <- rbind(WAA_emp, WAA_re)
 
 # Visualize! --------------------------------------------------------------
 
-ggplot(WAA_all, aes(x = factor(ages), y = factor(yrs), fill = vals)) +
+ggplot(WAA_all %>% 
+         filter(Type == "Random"), 
+       aes(x = factor(ages), y = factor(yrs), fill = vals)) +
   geom_tile(alpha = 0.9) +
   scale_x_discrete(breaks = seq(3, 15, 3)) +
   scale_y_discrete(breaks = seq(1, 31, 5)) +
