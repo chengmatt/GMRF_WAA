@@ -59,7 +59,7 @@ function( n_a,
   B = sparseMatrix( i=i, j=j, x=x, dims=rep(n_a*n_t,2) )
   I = sparseMatrix( i=seq_len(n_a*n_t), j=seq_len(n_a*n_t), x=rep(1,n_a*n_t) )
   L = solve(I-B)
-
+  
   # Solve Omega recursively for stationary variance
   d = rep(NA, nrow(index))
   for( n in 1:nrow(index) ){
@@ -90,23 +90,23 @@ function( n_a,
 # Explore
 n_a = 13
 n_t = 31
-pcorr_age = 0.26
+pcorr_age = -0.5
 pcorr_year = 0.835
 pcorr_cohort = 0.05
 # #marg_var = condvar / (1 - pcorr_age^2 - pcorr_year^2 - pcorr_cohort^2)
-margvar = exp(-6.31168892)
-# # margvar * (1 - pcorr_age^2 - pcorr_year^2)
-# 
-# Q = make_precision(n_a, n_t, pcorr_age, pcorr_year, pcorr_cohort, margvar)
-# Omega = make_precision(n_a, n_t, pcorr_age, pcorr_year, pcorr_cohort, margvar, what="Omega")
-# D = make_precision(n_a, n_t, pcorr_age, pcorr_year, pcorr_cohort, margvar, what="dmat")
-# V = solve( Q )
-# Vdense = as.matrix(V)
-# matrix( diag(Vdense), nrow=n_a, ncol=n_t ) # Check marginal variance
-# 
-# Y_at = matrix( rmvnorm(n=1, mean=rep(0,n_a*n_t), sigma=Vdense), nrow=n_a, ncol=n_t )
-# image( y=seq_len(n_a), x=seq_len(n_t), z=t(Y_at), xlab="Year", ylab="Age" )
-# 
-# # Check variance
-# mean(Y_at^2)
+margvar = exp(0.1)
+# margvar * (1 - pcorr_age^2 - pcorr_year^2)
+
+Q = make_precision(n_a, n_t, pcorr_age, pcorr_year, pcorr_cohort, margvar)
+Omega = make_precision(n_a, n_t, pcorr_age, pcorr_year, pcorr_cohort, margvar, what="Omega")
+D = make_precision(n_a, n_t, pcorr_age, pcorr_year, pcorr_cohort, margvar, what="dmat")
+V = solve( Q )
+Vdense = as.matrix(V)
+matrix( diag(Vdense), nrow=n_a, ncol=n_t ) # Check marginal variance
+
+Y_at = matrix( rmvnorm(n=1, mean=rep(0,n_a*n_t), sigma=Vdense), nrow=n_a, ncol=n_t )
+image( y=seq_len(n_a), x=seq_len(n_t), z=t(Y_at), xlab="Year", ylab="Age" )
+
+# Check variance
+mean(Y_at^2)
 

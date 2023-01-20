@@ -1,8 +1,7 @@
-# Purpose: To run a triple separable model testing for evidence of
+# Purpose: To run a series of triple separable models testing for evidence of
 # cohort/age/year effects for EBS pollock
 # Creator: Matthew LH. Cheng (UAF-CFOS)
 # Date 1/16/23
-
 
 # Set up ------------------------------------------------------------------
 
@@ -53,7 +52,7 @@ ay_Index <- as.matrix(expand.grid("age" = seq_len(length(ages)),
 # Now, input these components into a data list
 data <- list(years = years, ages = ages,
              WAA = WAA, WAA_std = WAA_std,  
-             ay_Index = ay_Index)
+             ay_Index = ay_Index, Var_Param = 0) # Conditional Variance
 
 # Input parameters into a list
 parameters <- list(rho_y = 0, rho_a = 0,
@@ -123,131 +122,7 @@ for(n_fact in 1:nrow(map_factorial)) {
 
 } # loop through to run multiple models
 
-
-
-# Model Checking ----------------------------------------------------------
-
-AIC_models <- vector() # store aic
-nlminb_conv <- vector() # store nlminb convergence diagnostic
-grad_conv <- vector() # store maximum gradient
-grad_name_conv <- vector() # store parameter with maximum gradient
-hess_conv <- vector() # whether or not Hessian is positive definite 
-par_values <- data.frame(rho_y = NA, rho_a = NA, rho_c = NA, log_sigma2 = NA) # parameter values
-par_sd_values <- data.frame(rho_y_sd = NA, rho_a_sd = NA, rho_c_sd = NA,  log_sigma2_sd = NA) # se values
-
-# Extract model values
-for(i in 1:length(models)) {
-  
-  # Convergence diagnostics
-  AIC_models[i] <- margAIC(models[[i]]$optim) # get aic
-  nlminb_conv[i] <- models[[i]]$optim$convergence # get nlminb convergence
-  grad_conv[i] <- max(abs(models[[i]]$sd_rep$gradient.fixed)) # max gradient
-  # Get max gradient parameter name
-  grad_name_conv[i] <- names(models[[i]]$sd_rep$par.fixed)[which.max(abs(models[[i]]$sd_rep$gradient.fixed))]
-  hess_conv[i] <- models[[i]]$sd_rep$pdHess # whether or not this is pd HESS
-  
-  # Grab parameter values here and store
-  par_values[i,] <- models[[i]]$sd_rep$par.fixed[match(colnames(par_values),
-                                                       names(models[[i]]$sd_rep$par.fixed))]
-  
-  # Get parameter std values here and store
-  par_sd_values[i,] <- sqrt(
-    diag(models[[i]]$sd_rep$cov.fixed)[match(colnames(par_values),
-                                             names(diag(models[[i]]$sd_rep$cov.fixed)))]
-  )
-
-  if(i == length(models)) {
-    model_diag <- data.frame(AIC = AIC_models, nlminb_conv = nlminb_conv,
-                             max_grad_name = grad_name_conv,
-                             max_grad = grad_conv, pd_Hess = hess_conv)
-    
-    # Bind parameter values and sd together
-    model_diag <- cbind(model_diag, par_values, par_sd_values)
-  } # when done w/ evaluating all models
-  
-} # end i loop
-  
-
-# Create model names to differentiate models
-model_names <- map_factorial %>% 
-  mutate(rho_y_lab = case_when(rho_y == 1 ~ "y"),
-         rho_a_lab = case_when(rho_a == 1 ~ "a"),
-         rho_c_lab = case_when(rho_c == 1 ~ "c")) %>% 
-  dplyr::select(rho_y_lab, rho_a_lab, rho_c_lab) %>% 
-  dplyr::rowwise() %>% 
-  tidyr::unite('model', na.rm = TRUE)
-
-# Input model names above into model_diag df
-model_diag$model <- model_names$model
-# No correlation parameters estimated
-model_diag$model[model_diag$model == ""] <- "None"
-
-# Pivot this dataframe longer 
-# Parmeter MLEs here only (doing ses and binding in 2 steps)
-model_pars_long <- model_diag %>% 
-  dplyr::select(-rho_a_sd, -rho_y_sd, -rho_c_sd, -log_sigma2_sd) %>% 
-  pivot_longer(cols = c(rho_a, rho_c, rho_y, log_sigma2), 
-               names_to = "parameters",  values_to = "mle_val")
-
-# Get SE values now
-model_se_long <- model_diag %>% 
-  dplyr::select(rho_a_sd, rho_y_sd, rho_c_sd, log_sigma2_sd) %>% 
-  pivot_longer(cols = everything(),names_to = "sd",  values_to = "sd_val")
-
-# Now bind, these two together
-model_diag_long <- cbind(model_pars_long, model_se_long)
-
-# Create lwr and upr confidence intervals here
-model_diag_long <- model_diag_long %>% 
-  mutate(lwr_95 = mle_val - (1.96 * sd_val),
-         upr_95 = mle_val + (1.96 * sd_val))
-
-# Revel factors here
-model_diag_long <- model_diag_long %>% 
-  mutate(model = factor(model,
-                        levels = c("None", "a", "y", "c",
-                                   "a_y", "a_c", "y_a", "y_c", "y_a_c")),
-         parameters = factor(parameters,
-                             levels = c("rho_a", "rho_y", "rho_c", "log_sigma2"),
-                             labels = c( bquote(rho[a]), bquote(rho[y]), bquote(rho[c]), bquote(sigma^2) )))
-
-
-# Plot parameter estaimtes and WAA RE -------------------------------------------------
-
-# Visualize parameters
-(par_plot <- ggplot(model_diag_long, aes(x = model, y = mle_val,
-                            ymin = lwr_95, ymax = upr_95,
-                            shape = factor(nlminb_conv),
-                            color = model)) +
-  geom_pointrange(size = 0.95) +
-  ggsci::scale_color_jco() +
-  scale_shape_manual(values = c(19, 1), 
-                     labels = c("Converged", "Not Converged")) +
-  facet_wrap(~parameters, scales = "free_y", labeller = label_parsed) +
-  guides(color="none") +
-  theme_bw() +
-  theme(legend.position = 'none',
-        axis.title = element_text(size = 17),
-        axis.text = element_text(size = 15, color = "black"),
-        strip.text = element_text(size = 17)) +
-  labs(x = "Model", y = "Parameter Estiamte", shape = "Convergence"))
-
-# Visualize AIC across models
-(aic_plot <- ggplot(model_diag_long, aes(x = model, y = AIC, group = 1)) +
-  geom_point(aes(color = model),size = 5) +
-  geom_line(lty = 2) +
-  ggsci::scale_color_jco() +
-  theme_bw() +
-  theme(legend.position = "none",
-        axis.title = element_text(size = 17),
-        axis.text = element_text(size = 15, color = "black"),
-        strip.text = element_text(size = 17))  +
-  labs(x = "Model", y = "AIC"))
-
-png(here("figs", "Par_est_AIC.png"), width = 1300, height = 500)
-plot_grid(par_plot, aic_plot, rel_widths = c(0.65, 0.35), 
-          align = "hv", axis = "bl")
-dev.off()
+save(models, file = here("output", "ebs_pollock_waa_models.RData"))
 
 
 # Visualize WAA_re --------------------------------------------------------
@@ -263,7 +138,7 @@ for(n_fact in 1:nrow(map_factorial)) {
   
   # coerce these values into a matrix
   WAA_re <- matrix(
-      rand_par_vals[names(rand_par_vals) == "WAA_re"],
+      rand_par_vals[names(rand_par_vals) == "Y_at"],
       ncol = length(ages), nrow = length(years)
     )
   
@@ -286,36 +161,57 @@ WAA_re_df_all <- WAA_re_df_all %>%
                       levels = c("None", "a", "y", "c",
                                  "a_y", "a_c", "y_a", "y_c", "y_a_c")))
 
-# mean value calculation
-mean_wt_re <- mean(WAA_re_df_all$vals)
+# Calculate anomaly relative to the mean weight-at-age
+mean_waa <- reshape2::melt(models[[1]]$rep$mu_at[,1]) %>% 
+  mutate(ages = 1:13) %>% 
+  rename(mean_waa = value)
+
+# Compute anomaly relative to the mean
+WAA_re_df_all <- WAA_re_df_all %>% 
+  left_join(mean_waa, by = "ages") %>% 
+  mutate(anom = (vals - mean_waa) / mean_waa)
 
 # Now, plot!
-plot_list <- list()
-pdf(here("figs", "ebs_pollock_WAA_models.pdf"), width = 15, height = 15)
+pdf(here("figs", "ebs_pollock_WAA_models_tile.pdf"), width = 15, height = 15)
 
-for(i in 1:length(unique(WAA_re_df_all$model))) {
-  
-  # Iteratively plot these out
-    plot_list[[i]] <- ggplot(WAA_re_df_all %>% 
-             filter(model == unique(WAA_re_df_all$model)[i]), 
-           aes(x = factor(ages), y = factor(yrs), fill = vals)) +
-      geom_tile(alpha = 0.9) +
-      scale_x_discrete(breaks = seq(3, 15, 3)) +
-      scale_y_discrete(breaks = seq(1, 31, 5)) +
-      geom_text(aes(label=round(vals,2)), size = 5) +
-      scale_fill_gradient2(midpoint = mean_wt_re ) +
-      facet_wrap(~model, ncol = 2) +
-      theme_bw() +
-      labs(x = "Age", y = "Year", fill = "Weight") +
-      theme(axis.title = element_text(size = 17),
-            axis.text = element_text(size = 15),
-            legend.title = element_text(size = 17),
-            legend.text = element_text(size = 15),
-            strip.text = element_text(size = 15),
-            legend.position = "top",
-            legend.key.size = unit(0.75, "cm"))
-}
+ tile_plot <- ggplot(WAA_re_df_all, 
+         aes(x = factor(ages), y = factor(yrs), fill = anom)) +
+    geom_tile(alpha = 0.9) +
+    scale_x_discrete(breaks = seq(3, 15, 3)) +
+    scale_y_discrete(breaks = seq(1, 31, 5)) +
+    scale_fill_gradient2( ) +
+    theme_bw() +
+    facet_wrap(~model, ncol = 4) +
+    labs(x = "Age", y = "Year", fill = "Anomaly relative to mean WAA") +
+    theme(axis.title = element_text(size = 17),
+          axis.text = element_text(size = 15),
+          legend.title = element_text(size = 17),
+          legend.text = element_text(size = 15),
+          strip.text = element_text(size = 17),
+          legend.position = "top",
+          legend.key.width = unit(1.5, "cm"))
+ 
+ line_plot <- ggplot(WAA_re_df_all %>% 
+          filter(ages %in% c(seq(1, 13, 3))), 
+        aes(x = factor(yrs), y = vals, color = factor(ages),
+            group = factor(ages))) +
+   geom_line(alpha = 0.75, size = 1.3) +
+   geom_text(aes(label = ages), size = 5) +
+   scale_x_discrete(breaks = seq(1, 31, 5)) +
+   ggsci::scale_color_jco( ) +
+   theme_bw() +
+   facet_wrap(~model, ncol = 4) +
+   labs(x = "Year", y = "Wieght") +
+   theme(axis.title = element_text(size = 17),
+         axis.text = element_text(size = 15),
+         legend.title = element_text(size = 17),
+         legend.text = element_text(size = 15),
+         strip.text = element_text(size = 17),
+         legend.position = "none",
+         legend.key.width = unit(1.5, "cm"))
+ 
+ plot_grid(tile_plot, line_plot, rel_heights = c(1, 1),
+           ncol = 1)
 
-plot_list
 
 dev.off()

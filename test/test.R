@@ -51,7 +51,8 @@ data <- list( years = years,
               ages = ages,
               X_at = X_at,
               Xse_at = Xse_at,
-              ay_Index = ay_Index )
+              ay_Index = ay_Index,
+              Var_Param = 1) # Var_Param == 0 Conditional, == 1 Marginal
 
 # Input parameters into a list
 parameters <- list( rho_y = 0,
@@ -59,11 +60,11 @@ parameters <- list( rho_y = 0,
                     rho_c = 0,
                     log_sigma2 = rbeta(1, 1, 1),
                     ln_L0 = log(0.1),
-                    ln_Linf = log(1),  # Change to reasonable value, only a*Linf is identified using WAA data
+                    ln_Linf = log(1),  
                     ln_k = log(0.2),
                     ln_alpha = log(1),
                     ln_beta = log(3),   # Fix at isometric
-                    Y_at = array(0,dim=dim(X_at)) )
+                    Y_at = array(0,dim=dim(X_at)) ) 
 
 # Turn params off
 map = list( "ln_Linf" = factor(NA),
@@ -73,10 +74,11 @@ map = list( "ln_Linf" = factor(NA),
 waa_model <- MakeADFun(data = data, parameters = parameters, 
                        random = "Y_at",
                        DLL = "triple_sep_waa",
-                       map = map)
+                       map = map, silent = FALSE)
 
 report = waa_model$report()
 plot(report$mu_at[,1])
+diag(solve(report$Q_sparse)) 
 
 # Now, optimize the function
 waa_optim <- stats::nlminb(waa_model$par, waa_model$fn, waa_model$gr,  
@@ -107,16 +109,16 @@ max(abs(sd_rep$gradient.fixed))
 waa_model$report()$jnLL 
 waa_optim$objective 
 
-# Plot covariance
-I = waa_model$report()$I
-B = waa_model$report()$B
-Omega = waa_model$report()$Omega
-Q_man = (I * t(B)) %*% Omega %*% (I-B)
+
+# Plot covariance for model checking --------------------------------------
+
+# Model covariance
 Q = waa_model$report()$Q
 V = solve(Q)
 R = cov2cor(V)
-P_at = matrix( R[,5], nrow=length(ages), ncol=length(years) )
-image(t(P_at))
+P_at = matrix( R[,10], nrow=length(ages), ncol=length(years) )
+image(t(P_at)) 
+
 
 # Extract values ----------------------------------------------------------
 
@@ -144,15 +146,25 @@ WAA_emp <- WAA_emp %>%
 WAA_all <- rbind(WAA_emp, WAA_re)
 
 
-# Visualize! --------------------------------------------------------------
+# Visualize for model checking --------------------------------------------------------------
+
+# Calculate anomaly relative to the mean weight-at-age
+mean_waa <- reshape2::melt(report$mu_at[,1]) %>% 
+  mutate(ages = 1:13) %>% 
+  rename(mean_waa = value)
+
+# Compute anomaly relative to the mean
+WAA_all <- WAA_all %>% 
+  left_join(mean_waa, by = "ages") %>% 
+  mutate(anom = (vals - mean_waa) / mean_waa)
 
 ggplot(WAA_all %>% filter(Type == "Random"), 
-       aes(x = factor(ages), y = factor(yrs), fill = vals)) +
+       aes(x = factor(ages), y = factor(yrs), fill = anom)) +
   geom_tile(alpha = 0.9) +
   scale_x_discrete(breaks = seq(3, 15, 3)) +
   scale_y_discrete(breaks = seq(1, 31, 5)) +
   geom_text(aes(label=round(vals,2)), size = 5) +
-  scale_fill_gradient2(midpoint = mean_wt_re ) +
+  scale_fill_gradient2(midpoint = mean(WAA_all$anom) ) +
   facet_wrap(~Type) +
   theme_bw() +
   labs(x = "Age", y = "Year") +
