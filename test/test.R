@@ -116,7 +116,7 @@ waa_optim$objective
 Q = waa_model$report()$Q
 V = solve(Q)
 R = cov2cor(V)
-P_at = matrix( R[,10], nrow=length(ages), ncol=length(years) )
+P_at = matrix( R[,403], nrow=length(ages), ncol=length(years) )
 image(t(P_at)) 
 
 

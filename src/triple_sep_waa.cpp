@@ -91,31 +91,27 @@ Eigen::SparseMatrix<Type> construct_Q(int n_years, // Integer of years
     
     // Construct container objects
     matrix<Type> L(total_n, total_n); // L Matrix
-    matrix<Type> tmp_I = I; // Temporary Identity Matrix
-    matrix<Type> tmp_B = B; // Temporary B Matrix
+    Eigen::SparseMatrix<Type> tmp_I_B = I-B;
+    L =  tmbutils::invertSparseMatrix(tmp_I_B); // Invert to get L
     vector<Type> d(total_n); // Store variance calculations
-    L = (tmp_I-tmp_B).inverse(); // Solve for L (not sure how to invert 
-    // a sparse matrix, which is why I coerced them to regular matrices)
-
+    
     for(int n = 0; n < total_n; n++) {
-      
       if(n == 0) {
-        d(n) = exp(log_sigma2); // Our marginal variance parameter
+        d(n) = exp(log_sigma2); // marginal variance parameter
       } else{
         
-        Type cumvar; // Cumulative Variance container
-        int tmp_n_idx = n; // temporary container to do seq_len() like indexing
-
-        for(int n1 = 0; n1 < tmp_n_idx; n1++) { // calculate cumulative variance
-          cumvar += L(n, n1) * d(n1) * L(n, n1); // sum across these
+        Type cumvar; // Cumulative Variance Containers
+        int tmp_idx = n; // Temporary Index Variable
+        
+        for(int n1 = 0; n1 < tmp_idx; n1++) {
+          cumvar += L(n, n1) * d(n1) * L(n, n1);
         } // n1 loop
         
-        // Calculate diagonal values of Omega
+        // Caclulate diagonal values for omega
         d(n) = (exp(log_sigma2) - cumvar ) / pow(L(n, n), 2);
-          
-      } // end else statement
-      
-    } // end n loop
+        
+      } // else loop
+    } // n loop
     
     // Now fill in our diagonals for Omega
     for(int i = 0; i < total_n; i++) {
@@ -198,15 +194,15 @@ Type objective_function<Type>::operator() ()
   // vonB and allometric weight-length relationship
   for(int a = 0; a < X_at.rows(); a++) {
   for(int t = 0; t < X_at.cols(); t++) {
-    mu_at(a,t) = Linf - (Linf-L0)*exp(-k*Type(a));
-    mu_at(a,t) = alpha * pow( mu_at(a,t), beta );
+    mu_at(a,t) = Linf - (Linf-L0)*exp(-k*Type(a)); // LA calculations
+    mu_at(a,t) = alpha * pow( mu_at(a,t), beta ); // WL calculations
   } // t loop
 } // a loop
 
   // Evaluate WAA data likelihood
   for(int a = 0; a < X_at.rows(); a++) {
   for(int t = 0; t < X_at.cols(); t++) {
-    jnLL -= dnorm(X_at(a,t), Y_at(a,t), Xse_at(a,t), true);
+    jnLL -= dnorm(Y_at(a,t), X_at(a,t), Xse_at(a,t), true);
   } // t loop
 } // a loop
 
