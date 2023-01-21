@@ -9,9 +9,10 @@
 library(here)
 library(tidyverse)
 library(cowplot)
+library(Matrix)
 
 # Load in models
-load(here("output", "ebs_pollock_waa_models.RData")) # obj is called models
+load(here("output", "cond_var_ebs_pollock_waa_models.RData")) # obj is called models
 
 # Load in model diagnostics csv
 model_diag <- read.csv(here("output", "model_diag_vals.csv"))
@@ -60,7 +61,7 @@ ages <- 3:15
                                          ymin = lwr_95, ymax = upr_95,
                                          shape = factor(nlminb_conv),
                                          color = model)) +
-   geom_pointrange(size = 0.95) +
+   geom_pointrange(size = 1.1) +
    ggsci::scale_color_jco() +
    scale_shape_manual(values = c(19, 1), 
                       labels = c("Converged", "Not Converged")) +
@@ -71,7 +72,7 @@ ages <- 3:15
          axis.title = element_text(size = 17),
          axis.text = element_text(size = 15, color = "black"),
          strip.text = element_text(size = 17)) +
-   labs(x = "", y = "Parameter Estiamte", shape = "Convergence"))
+   labs(x = "Model", y = "Parameter Estiamte", shape = "Convergence"))
 
 # Visualize AIC across models
 (aic_plot <- ggplot(model_diag, aes(x = model, y = AIC, group = 1)) +
@@ -156,7 +157,7 @@ tile_plot <- ggplot(WAA_re_df_all,
   geom_tile(alpha = 0.9) +
   scale_x_discrete(breaks = seq(3, 15, 3)) +
   scale_y_discrete(breaks = seq(1990, 2020, 5)) +
-  scale_fill_gradient2( ) +
+  scale_fill_gradient2(midpoint = 0.1) +
   theme_bw() +
   facet_wrap(~model, ncol = 4) +
   labs(x = "Age", y = "Year", fill = "Anomaly relative to mean WAA") +
@@ -195,4 +196,4 @@ plot_grid(tile_plot, line_plot, rel_heights = c(1, 1), axis = "bl", align = "hv"
           vjust = c(3, 0), label_size = 23)
 
 dev.off()
-   
+

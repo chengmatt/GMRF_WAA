@@ -68,9 +68,6 @@ parameters <- list( rho_y = 0,
 
 # Turn params off
 map = list( "ln_Linf" = factor(NA),
-            rho_y = factor(NA),
-            # rho_a = factor(NA),
-            rho_c = factor(NA),
             "ln_beta" = factor(NA)
 )
 

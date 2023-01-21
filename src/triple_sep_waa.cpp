@@ -92,7 +92,7 @@ Eigen::SparseMatrix<Type> construct_Q(int n_years, // Integer of years
         d(n) = exp(log_sigma2); // marginal variance parameter
       } else{
         
-        Type cumvar = 0; // Cumulative Variance Con
+        Type cumvar = 0; // Cumulative Variance Container
         
         for(int n1 = 0; n1 < n; n1++) {
           cumvar += L(n, n1) * d(n1) * L(n, n1);
@@ -121,7 +121,10 @@ Eigen::SparseMatrix<Type> construct_Q(int n_years, // Integer of years
   Q_sparse = (I - B_transpose) * Omega * (I-B);
   
   return(Q_sparse);
+  
 } // end construct_Q function
+
+
 
 
 template<class Type> 
