@@ -1,0 +1,86 @@
+library(here)
+library(tidyverse)
+library(TMB)
+
+# Load in WAA matrix (only use fishery data)
+waa_df <- read.csv(here("data", "ebs_waa.csv")) %>% 
+  filter(source == "fishery") %>% 
+  dplyr::select(-source)
+
+# Load in std for WAA matrix
+waa_std_df <- read.csv(here("data", "ebs_waa_std.csv")) %>% 
+  filter(source == "fishery") %>% 
+  dplyr::select(-source)
+
+# Compile and load in model
+setwd(here("src"))
+compile("triple_sep_waa.cpp")
+dyn.load(dynlib("triple_sep_waa"))
+
+
+# Set up TMB data ----------------------------------------
+
+# Years
+years <- waa_df$year
+
+# Ages (goes from age 3 - 15+)
+ages <- parse_number(colnames(waa_df)[-1])
+
+# Read in data weight at age matrix
+X_at <- t(as.matrix(waa_df[,-1])) # removing first col (year column)
+
+# Read in standard deviations for weight at age matrix
+Xse_at <- t(as.matrix(waa_std_df[,-1])) # removing first col (year column)
+
+# Create an index for ages and years to feed into TMB, which helps construct the precision matrix
+ay_Index <- as.matrix(expand.grid("age" = seq_len(length(ages)), 
+                                  "year" = seq_len(length(years)) ))
+
+
+# Set up TMB Model --------------------------------------------------------
+
+# Now, input these components into a data list
+data <- list( years = years,
+              ages = ages,
+              X_at = X_at,
+              Xse_at = Xse_at,
+              ay_Index = ay_Index,
+              Var_Param = 1) # Var_Param == 0 Conditional, == 1 Marginal
+
+# Input parameters into a list
+parameters <- list( rho_y = 0,
+                    rho_a = 0,
+                    rho_c = 0,
+                    log_sigma2 = log(0.1),
+                    ln_L0 = log(0.1),
+                    ln_Linf = log(1),  
+                    ln_k = log(0.2),
+                    ln_alpha = log(1),
+                    ln_beta = log(3),   # Fix at isometric
+                    Y_at = array(0,dim=dim(X_at)) ) 
+
+# Turn params off
+map = list( "ln_Linf" = factor(NA),
+            "ln_beta" = factor(NA),
+            "log_sigma2" = factor(NA))
+
+compile("triple_sep_waa.cpp")
+dyn.load(dynlib("triple_sep_waa"))
+
+# Now, make AD model function
+waa_model <- MakeADFun(data = data, parameters = parameters, 
+                       random = "Y_at",
+                       DLL = "triple_sep_waa",
+                       map = map, silent = FALSE)
+
+report = waa_model$report()
+diag(solve(report$Q_sparse)) # Prior to optimization
+plot(report$mu_at[,1])
+
+# Now, optimize the function
+waa_optim <- stats::nlminb(waa_model$par, waa_model$fn, waa_model$gr,  
+                           control = list(iter.max = 1e5, eval.max = 1e5))
+
+
+# After optimization
+diag(solve(report$Q_sparse)) # variance changes

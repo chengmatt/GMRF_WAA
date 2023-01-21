@@ -90,9 +90,9 @@ function( n_a,
 # Explore
 n_a = 13
 n_t = 31
-pcorr_age = -0.1
-pcorr_year = 0.835
-pcorr_cohort = 0.05
+pcorr_age = 0.2
+pcorr_year = 0.3
+pcorr_cohort = 0.1
 # #marg_var = condvar / (1 - pcorr_age^2 - pcorr_year^2 - pcorr_cohort^2)
 margvar = 0.1
 # margvar * (1 - pcorr_age^2 - pcorr_year^2)

@@ -24,6 +24,7 @@ Eigen::SparseMatrix<Type> construct_Q(int n_years, // Integer of years
   // Construct matrices for precision matrix
   Eigen::SparseMatrix<Type> B(total_n,total_n); // B matrix
   Eigen::SparseMatrix<Type> I(total_n,total_n); // Identity matrix
+  I.setIdentity(); // Set I to identity matrix
   Eigen::SparseMatrix<Type> Omega(total_n,total_n); // Omega matrix (variances)
   Eigen::SparseMatrix<Type> Q_sparse(total_n, total_n); // Precision matrix
   
@@ -66,14 +67,6 @@ Eigen::SparseMatrix<Type> construct_Q(int n_years, // Integer of years
     
   } // end n loop
   
-  // Fill in identity matrix diagonals with 1s
-  for(int i = 0; i < total_n; i++) {
-    for(int j = 0; j < total_n; j++) {
-      if(i == j) I.coeffRef(i,j) = Type(1.0);
-      else I.coeffRef(i,j) = Type(0.0);
-    } // j loop
-  } // i loop
-  
   // Fill in Omega matrix here (variances)
   if(Var_Param == 0) { // Conditional variance
     
@@ -86,13 +79,15 @@ Eigen::SparseMatrix<Type> construct_Q(int n_years, // Integer of years
     
   } // end if conditional variance
   
-  // Need to solve Omega recursively to derive stationary (marginal) variance
   if(Var_Param == 1) { // Marginal Variance
     
     // Construct container objects
     matrix<Type> L(total_n, total_n); // L Matrix
-    Eigen::SparseMatrix<Type> tmp_I_B = I-B;
-    L =  tmbutils::invertSparseMatrix(tmp_I_B); // Invert to get L
+    matrix<Type> tmp_I_B = I-B; // Temporary Matrix to store I-B
+    // Eigen::SparseMatrix<Type> tmp_I_B = I-B;
+    // L =  atomic::matinv(tmp_I_B); // Invert to get L
+    L =  tmp_I_B.inverse(); // Invert to get L
+    // L =  tmbutils::invertSparseMatrix(tmp_I_B);
     vector<Type> d(total_n); // Store variance calculations
     
     for(int n = 0; n < total_n; n++) {
@@ -100,15 +95,14 @@ Eigen::SparseMatrix<Type> construct_Q(int n_years, // Integer of years
         d(n) = exp(log_sigma2); // marginal variance parameter
       } else{
         
-        Type cumvar; // Cumulative Variance Containers
-        int tmp_idx = n; // Temporary Index Variable
+        Type cumvar = 0; // Cumulative Variance Con
         
-        for(int n1 = 0; n1 < tmp_idx; n1++) {
+        for(int n1 = 0; n1 < n; n1++) {
           cumvar += L(n, n1) * d(n1) * L(n, n1);
         } // n1 loop
         
-        // Caclulate diagonal values for omega
-        d(n) = (exp(log_sigma2) - cumvar ) / pow(L(n, n), 2);
+        // Calculate diagonal values for omega
+        d(n) = (exp(log_sigma2) - cumvar) / pow(L(n, n), 2);
         
       } // else loop
     } // n loop
@@ -217,10 +211,11 @@ Type objective_function<Type>::operator() ()
   // REPORT(I);
   // REPORT(B);
   // REPORT(Omega);
+  // REPORT(L);
   REPORT( mu_at );
 
   return(jnLL);
   
-}
+} // end objective function
   
   

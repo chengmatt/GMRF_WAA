@@ -40,6 +40,18 @@ model_diag <- model_diag %>%
                              labels = c( bquote(rho[a]), bquote(rho[y]), 
                                          bquote(rho[c]), bquote(sigma^2) )))
 
+# Create model names to differentiate models
+model_names <- map_factorial %>% 
+  mutate(rho_y_lab = case_when(rho_y == 1 ~ "y"),
+         rho_a_lab = case_when(rho_a == 1 ~ "a"),
+         rho_c_lab = case_when(rho_c == 1 ~ "c")) %>% 
+  dplyr::select(rho_y_lab, rho_a_lab, rho_c_lab) %>% 
+  dplyr::rowwise() %>% 
+  tidyr::unite('model', na.rm = TRUE)
+
+# Dimensions
+years <- 1991:2021
+ages <- 3:15
 
 # Plot parameter estimates and WAA RE -------------------------------------------------
 
@@ -73,9 +85,10 @@ model_diag <- model_diag %>%
           strip.text = element_text(size = 17))  +
     labs(x = "Model", y = "AIC"))
 
-pdf(here("figs", "Par_est_AIC.pdf"), width = 17, height = 13)
-plot_grid(par_plot, aic_plot, rel_widths = c(0.5, 0.5), 
-          align = "hv", axis = "bl", ncol = 2)
+pdf(here("figs", "Par_est_AIC.pdf"), width = 17, height = 10)
+plot_grid(aic_plot, par_plot, rel_widths = c(0.5, 0.5), 
+          align = "hv", axis = "bl", ncol = 2,
+          labels = c("A", "B"), label_size = 23, hjust = -0.5)
 dev.off()
  
 
@@ -177,7 +190,9 @@ line_plot <- ggplot(WAA_re_df_all %>%
 # Now, plot!
 pdf(here("figs", "ebs_pollock_WAA_models_tile.pdf"), width = 18, height = 15)
 
-plot_grid(tile_plot, line_plot, rel_heights = c(1, 1),
-          ncol = 1)
+plot_grid(tile_plot, line_plot, rel_heights = c(1, 1), axis = "bl", align = "hv",
+          ncol = 1, labels = c("A", "B"), hjust = c(-2, -2),  
+          vjust = c(3, 0), label_size = 23)
 
 dev.off()
+   

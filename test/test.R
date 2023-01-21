@@ -56,9 +56,9 @@ data <- list( years = years,
 
 # Input parameters into a list
 parameters <- list( rho_y = 0,
-                    rho_a = 0,
-                    rho_c = 0,
-                    log_sigma2 = rbeta(1, 1, 1),
+                    rho_a = 0.3851462,
+                    rho_c = -0.1440648,
+                    log_sigma2 = log(0.1),
                     ln_L0 = log(0.1),
                     ln_Linf = log(1),  
                     ln_k = log(0.2),
@@ -68,7 +68,12 @@ parameters <- list( rho_y = 0,
 
 # Turn params off
 map = list( "ln_Linf" = factor(NA),
-            "ln_beta" = factor(NA))
+            "ln_beta" = factor(NA),
+            rho_a = factor(NA),
+            rho_c = factor(NA))
+
+compile("triple_sep_waa.cpp")
+dyn.load(dynlib("triple_sep_waa"))
 
 # Now, make AD model function
 waa_model <- MakeADFun(data = data, parameters = parameters, 
@@ -77,8 +82,7 @@ waa_model <- MakeADFun(data = data, parameters = parameters,
                        map = map, silent = FALSE)
 
 report = waa_model$report()
-plot(report$mu_at[,1])
-diag(solve(report$Q_sparse)) 
+diag(solve(report$Q_sparse))
 
 # Now, optimize the function
 waa_optim <- stats::nlminb(waa_model$par, waa_model$fn, waa_model$gr,  
@@ -99,6 +103,9 @@ plot(report$mu_at[,1], type = "l")
 # Get sd report
 sd_rep <- sdreport(waa_model)
 
+# Check marginal variance
+diag(solve(report$Q_sparse))
+
 # Visualize sparse matrix
 Matrix::image(waa_model$env$spHess(random=TRUE))
 
@@ -115,8 +122,9 @@ waa_optim$objective
 # Model covariance
 Q = waa_model$report()$Q
 V = solve(Q)
+diag(V)
 R = cov2cor(V)
-P_at = matrix( R[,403], nrow=length(ages), ncol=length(years) )
+P_at = matrix( R[,5], nrow=length(ages), ncol=length(years) )
 image(t(P_at)) 
 
 
