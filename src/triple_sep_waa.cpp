@@ -84,10 +84,7 @@ Eigen::SparseMatrix<Type> construct_Q(int n_years, // Integer of years
     // Construct container objects
     matrix<Type> L(total_n, total_n); // L Matrix
     matrix<Type> tmp_I_B = I-B; // Temporary Matrix to store I-B
-    // Eigen::SparseMatrix<Type> tmp_I_B = I-B;
-    // L =  atomic::matinv(tmp_I_B); // Invert to get L
     L =  tmp_I_B.inverse(); // Invert to get L
-    // L =  tmbutils::invertSparseMatrix(tmp_I_B);
     vector<Type> d(total_n); // Store variance calculations
     
     for(int n = 0; n < total_n; n++) {

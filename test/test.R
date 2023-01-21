@@ -56,21 +56,23 @@ data <- list( years = years,
 
 # Input parameters into a list
 parameters <- list( rho_y = 0,
-                    rho_a = 0.3851462,
-                    rho_c = -0.1440648,
+                    rho_a = 0.5,
+                    rho_c = 0.3,
                     log_sigma2 = log(0.1),
                     ln_L0 = log(0.1),
                     ln_Linf = log(1),  
                     ln_k = log(0.2),
                     ln_alpha = log(1),
-                    ln_beta = log(3),   # Fix at isometric
+                    ln_beta = log(3), # Fix at isometric
                     Y_at = array(0,dim=dim(X_at)) ) 
 
 # Turn params off
 map = list( "ln_Linf" = factor(NA),
-            "ln_beta" = factor(NA),
-            rho_a = factor(NA),
-            rho_c = factor(NA))
+            rho_y = factor(NA),
+            # rho_a = factor(NA),
+            rho_c = factor(NA),
+            "ln_beta" = factor(NA)
+)
 
 compile("triple_sep_waa.cpp")
 dyn.load(dynlib("triple_sep_waa"))
@@ -124,7 +126,7 @@ Q = waa_model$report()$Q
 V = solve(Q)
 diag(V)
 R = cov2cor(V)
-P_at = matrix( R[,5], nrow=length(ages), ncol=length(years) )
+P_at = matrix( R[,403], nrow=length(ages), ncol=length(years) )
 image(t(P_at)) 
 
 
