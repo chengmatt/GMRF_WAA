@@ -3,7 +3,7 @@
 # Purpose: To visualize a triple separable function via random draws using different
 # combinations of partial correlations
 
-source(here("scripts", "Construct_precision_2023-01-02.R"))
+source(here("R_scripts", "make_precision", "Construct_precision_2023-01-02.R"))
 
 library(here)
 library(tidyverse)
@@ -63,7 +63,7 @@ corr_all <- corr_all %>%
                                         "pa = 0.1 py = 0.2 pc = 0.7"),
                        labels = c(pa_high, py_high, pc_high)))
 
-png(here("figs", "fig2_rmvnorm_panel.png"), height = 750, width = 1850)
+pdf(here("figs", "fig2_rmvnorm_panel.pdf"), height = 5, width = 18)
 # Plot!
 print(
   ggplot(corr_all, aes(factor(Year), factor(Age), fill = value )) +
@@ -78,12 +78,12 @@ print(
           panel.background = element_blank(),
           panel.grid.major = element_blank(),
           panel.grid.minor = element_blank(),
-          legend.text = element_text(size = 25),
-          legend.title = element_text(size = 28),
+          legend.text = element_text(size = 15),
+          legend.title = element_text(size = 17),
           legend.key.width = unit(1.5, "cm"),
           panel.spacing = unit(3, "lines"), # facet wrap spacing
-          strip.text = element_text(size = 28),
-          axis.title = element_text(size = 28),
-          axis.text = element_text(size = 25, color = "black")) 
+          strip.text = element_text(size = 17),
+          axis.title = element_text(size = 17),
+          axis.text = element_text(size = 15, color = "black")) 
 )
 dev.off()

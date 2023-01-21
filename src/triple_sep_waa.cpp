@@ -7,7 +7,8 @@
 
 template<class Type>
 // @description: Function that constructs a precision matrix, separable along the
-// year, age, and cohort axis
+// year, age, and cohort axis. Var_Param allows users to switch between conditional
+// variance, and marginal variance.
 Eigen::SparseMatrix<Type> construct_Q(int n_years, // Integer of years
                                       int n_ages, // Integer of ages
                                       matrix<Type> ay_Index, // Index matrix to construct
