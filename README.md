@@ -9,3 +9,17 @@ Matthew LH. Cheng <sup>1</sup>
 Many demographic processes vary by age and over time, and accounting for this variation within fisheries management remains a key challenge for many contemporary stock assessments. Although there is evidence for time, age, and cohort specific effects on various components within stock assessment (e.g., selectivity, growth), methods are lacking to simultaneously estimate autocorrelation over time, among ages, and by cohort while also quantifying residual variation. Drawing from previous research on separable cohort models, we reintroduce the idea of “triple-separability”, which simultaneously estimates autocorrelation for time, age, and cohort effects, and reduces to two-dimensional autocorrelation when one of the processes is fixed at zero. Utilizing eastern Bering Sea walleye pollock (Gadus chalcogrammus) as a case-study, we illustrate differences in predicted weight-at-age values from models with and without a triple-separable assumption and show that traditional model selection tools can be used to identify the relative evidence and magnitude of age, time, and cohort effects. We recommend that the method be integrated as a routine option within next-generation stock assessments, and note that it generalizes widely-used options in existing assessment frameworks (i.e., WHAM and SAM).
 ### Keywords
 mixed-effects, stock assessment, state-space, age-and time-varying, cohort effects
+
+### Repository Structure
+| Folder  | Items |
+| --------| --------|
+|data| Weight-at-age matrix with standard deviations for EBS walleye pollock |
+|docs| Auxiallary documents describing triple-separability in the VPA context |
+|figs| Contains general figures and model outputs |
+|R_scripts| Contains scripts for model runs, visualizations, and constructing a precision matrix with marginal variance |
+|src| Contains source code for TMB model, which is compiled through R|
+|test|R scripts testing the development of the TMB model and checks for correct model dimensions|
+|output| Model outputs from 2x2x2 factorial experiment |
+
+### Specification of the Precision Matrix
+
