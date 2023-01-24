@@ -149,7 +149,7 @@ Type objective_function<Type>::operator() ()
   
   // Define matrices for weight-at-age 
   DATA_MATRIX(X_at); // n_years * n_ages (Observered WAA)
-  DATA_MATRIX(Xse_at); // n_years * n_ages (Observed sd WAA)
+  DATA_MATRIX(Xsd_at); // n_years * n_ages (Observed CV WAA)
   
   // Index matrix to loop through to consruct precision matrix
   DATA_MATRIX(ay_Index);  // (n_years * n_ages) * 2 
@@ -200,7 +200,7 @@ Type objective_function<Type>::operator() ()
   // Evaluate WAA data likelihood
   for(int a = 0; a < X_at.rows(); a++) {
   for(int t = 0; t < X_at.cols(); t++) {
-    jnLL -= dnorm(ln_Y_at(a,t), log(X_at(a,t)), Xse_at(a,t), true);
+    jnLL -= dnorm(ln_Y_at(a,t), log(X_at(a,t)), Xsd_at(a,t), true);
   } // t loop
 } // a loop
 

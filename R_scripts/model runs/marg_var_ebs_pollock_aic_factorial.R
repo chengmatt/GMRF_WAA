@@ -34,11 +34,14 @@ years <- waa_df$year
 # Ages (goes from age 3 - 15+)
 ages <- parse_number(colnames(waa_df)[-1])
 
-# Read in data weight at age matrix
-X_at <- t(as.matrix(waa_df[,-1])) # removing first col (year column)
-
 # Read in standard deviations for weight at age matrix
 Xse_at <- t(as.matrix(waa_std_df[,-1])) # removing first col (year column)
+
+# Convert to CV
+Xcv_at <- sqrt( (exp(Xse_at^2) - 1) )
+
+# Now convert back to sd in lognormal space
+Xsd_at <- sqrt((log((Xcv_at)^2 + 1))/(log(10)^2))
 
 # Create an index for ages and years to feed into TMB, which helps construct the precision matrix
 ay_Index <- as.matrix(expand.grid("age" = seq_len(length(ages)), 
@@ -51,21 +54,22 @@ ay_Index <- as.matrix(expand.grid("age" = seq_len(length(ages)),
 data <- list( years = years,
               ages = ages,
               X_at = X_at,
-              Xse_at = Xse_at,
+              Xsd_at = Xsd_at,
               ay_Index = ay_Index,
-              Var_Param = 0) # Var_Param == 0 Conditional, == 1 Marginal
+              Var_Param = 1) # Var_Param == 0 Conditional, == 1 Marginal
 
 # Input parameters into a list
 parameters <- list( rho_y = 0,
                     rho_a = 0,
                     rho_c = 0,
-                    log_sigma2 = log(0.5),
-                    ln_L0 = log(0.1),
+                    log_sigma2 = log(0.1),
+                    ln_L0 = log(45),
                     ln_Linf = log(80),  # Fixed at arbitrary value
-                    ln_k = log(0.1),
-                    ln_alpha = log(1),
+                    ln_k = log(0.15),
+                    ln_alpha = log(3.5e-7), # Start alpha at a reasonable space 
+                    # Starting value for alpha derived from a run where none of the rhos were estimated.
                     ln_beta = log(3), # Fix at isometric
-                    Y_at = array(rnorm(1, 0, 1),dim=dim(X_at)) ) 
+                    ln_Y_at = array(0,dim=dim(X_at)) ) 
 
 
 # Run factorial models ----------------------------------------------------
@@ -104,7 +108,7 @@ for(n_fact in 1:nrow(map_factorial)) {
   
   # Now, make AD model function
   waa_model <- MakeADFun(data = data, parameters = parameters,
-                         map = map, random = "Y_at",
+                         map = map, random = "ln_Y_at",
                          DLL = "triple_sep_waa")
   
   # Now, optimize the function

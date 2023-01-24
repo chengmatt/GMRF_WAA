@@ -161,7 +161,7 @@ tile_plot <- ggplot(WAA_re_df_all,
   geom_tile(alpha = 0.9) +
   scale_y_discrete(breaks = seq(3, 15, 3)) +
   scale_x_discrete(breaks = seq(1990, 2020, 5)) +
-  scale_fill_gradient2(midpoint = 0.1, breaks = seq(-0.1, 0.6, 0.2)) +
+  scale_fill_gradient2(midpoint = 0, breaks = seq(-0.1, 0.6, 0.2)) +
   theme_bw() +
   facet_wrap(~model, ncol = 4) +
   labs(x = "Year", y = "Age", fill = "Anomaly relative to mean WAA") +
@@ -174,10 +174,10 @@ tile_plot <- ggplot(WAA_re_df_all,
         legend.key.width = unit(1.5, "cm"))
 
 line_plot <- ggplot(WAA_re_df_all %>% 
-                      filter(ages %in% c(seq(3, 15, 2))), 
+                      filter(ages %in% c(seq(3, 15, 3))), 
                     aes(x = factor(yrs), y = vals, color = factor(ages),
                         group = factor(ages))) +
-  geom_line(alpha = 0.8, size = 1.3) +
+  geom_line(alpha = 1, size = 1.6) +
   # geom_text(aes(label = ages), size = 4.5) +
   scale_x_discrete(breaks = seq(1990, 2020, 5)) +
   ggsci::scale_color_jco( ) +
@@ -197,7 +197,7 @@ line_plot <- ggplot(WAA_re_df_all %>%
 # Now, plot!
 png(here("figs", "ebs_pollock_WAA_models_tile.png"), width = 1400, height = 1000)
 
-plot_grid(tile_plot, line_plot, rel_heights = c(0.8, 1), axis = "bl", align = "hv",
+plot_grid(tile_plot, line_plot, rel_heights = c(1, 1), axis = "bl", align = "hv",
           ncol = 1, labels = c("A", "B"), hjust = c(-2, -2),  
           vjust = c(3, 0), label_size = 23)
 

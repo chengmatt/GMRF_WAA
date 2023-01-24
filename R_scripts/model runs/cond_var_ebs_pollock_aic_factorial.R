@@ -40,6 +40,12 @@ X_at <- t(as.matrix(waa_df[,-1])) # removing first col (year column)
 # Read in standard deviations for weight at age matrix
 Xse_at <- t(as.matrix(waa_std_df[,-1])) # removing first col (year column)
 
+# Convert to CV
+Xcv_at <- sqrt( (exp(Xse_at^2) - 1) )
+
+# Now convert back to sd in lognormal space
+Xsd_at <- sqrt((log((Xcv_at)^2 + 1))/(log(10)^2))
+
 # Create an index for ages and years to feed into TMB, which helps construct the precision matrix
 ay_Index <- as.matrix(expand.grid("age" = seq_len(length(ages)), 
                                   "year" = seq_len(length(years)) ))
@@ -51,7 +57,7 @@ ay_Index <- as.matrix(expand.grid("age" = seq_len(length(ages)),
 data <- list( years = years,
               ages = ages,
               X_at = X_at,
-              Xse_at = Xse_at,
+              Xsd_at = Xsd_at,
               ay_Index = ay_Index,
               Var_Param = 0) # Var_Param == 0 Conditional, == 1 Marginal
 
