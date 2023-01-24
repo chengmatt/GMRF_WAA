@@ -103,11 +103,11 @@ mean_WAA_all <- data.frame()
 for(n_fact in 1:nrow(map_factorial)) {
   
   # Extract random parameter values
-  rand_par_vals <- models[[n_fact]]$sd_rep$par.random
+  rand_par_vals <- exp(models[[n_fact]]$sd_rep$par.random)
   
   # coerce these values into a matrix
   WAA_re <- matrix(
-    t(models[[n_fact]]$env$parList()$Y_at),
+    t(exp(models[[n_fact]]$env$parList()$ln_Y_at)),
     ncol = length(ages), nrow = length(years)
   )
   
@@ -139,13 +139,17 @@ mean_WAA_all$model[mean_WAA_all$model == ""] <- "None"
 WAA_re_df_all <- WAA_re_df_all %>% 
   mutate(model = factor(model,
                         levels = c("None", "a", "y", "c",
-                                   "a_y", "a_c", "y_a", "y_c", "y_a_c")))
+                                   "a_y", "a_c", "y_a", "y_c", "y_a_c"),
+                        labels = c("None", "Age", "Year", "Cohort", 
+                                   "Age+Year", "Age+Cohort", "Year+Age", "Year+Cohort", "Year+Age+Cohort")))
 
 # Relevel for mean WAA df
 mean_WAA_all <- mean_WAA_all %>% 
   mutate(model = factor(model,
                         levels = c("None", "a", "y", "c",
-                                   "a_y", "a_c", "y_a", "y_c", "y_a_c")))
+                                   "a_y", "a_c", "y_a", "y_c", "y_a_c"),
+                        labels = c("None", "Age", "Year", "Cohort", 
+                                   "Age+Year", "Age+Cohort", "Year+Age", "Year+Cohort", "Year+Age+Cohort")))
 
 # Compute anomaly relative to the mean
 WAA_re_df_all <- WAA_re_df_all %>% 
@@ -153,14 +157,14 @@ WAA_re_df_all <- WAA_re_df_all %>%
   mutate(anom = (vals - mean_waa) / mean_waa)
 
 tile_plot <- ggplot(WAA_re_df_all, 
-                    aes(x = factor(ages), y = factor(yrs), fill = anom)) +
+                    aes(y = factor(ages), x = factor(yrs), fill = anom)) +
   geom_tile(alpha = 0.9) +
-  scale_x_discrete(breaks = seq(3, 15, 3)) +
-  scale_y_discrete(breaks = seq(1990, 2020, 5)) +
+  scale_y_discrete(breaks = seq(3, 15, 3)) +
+  scale_x_discrete(breaks = seq(1990, 2020, 5)) +
   scale_fill_gradient2(midpoint = 0.1, breaks = seq(-0.1, 0.6, 0.2)) +
   theme_bw() +
   facet_wrap(~model, ncol = 4) +
-  labs(x = "Age", y = "Year", fill = "Anomaly relative to mean WAA") +
+  labs(x = "Year", y = "Age", fill = "Anomaly relative to mean WAA") +
   theme(axis.title = element_text(size = 17),
         axis.text = element_text(size = 15, color = "black"),
         legend.title = element_text(size = 15),
@@ -186,14 +190,14 @@ line_plot <- ggplot(WAA_re_df_all %>%
         legend.title = element_text(size = 15),
         legend.text = element_text(size = 13),
         strip.text = element_text(size = 17),
-        legend.position = c(0.065, 0.9),
+        legend.position = c(0.065, 0.92),
         legend.background = element_blank(),
         legend.key.width = unit(0.75, "cm"))
 
 # Now, plot!
-pdf(here("figs", "ebs_pollock_WAA_models_tile.pdf"), width = 18, height = 15)
+png(here("figs", "ebs_pollock_WAA_models_tile.png"), width = 1400, height = 1000)
 
-plot_grid(tile_plot, line_plot, rel_heights = c(1, 1), axis = "bl", align = "hv",
+plot_grid(tile_plot, line_plot, rel_heights = c(0.8, 1), axis = "bl", align = "hv",
           ncol = 1, labels = c("A", "B"), hjust = c(-2, -2),  
           vjust = c(3, 0), label_size = 23)
 

@@ -1,5 +1,4 @@
-// Purpose: To implement triple separability as a weight-at-age matrix
-// for EBS pollock
+// Purpose: To implement triple separability as a weight-at-age matrix for EBS pollock
 // Creator: Matthew LH. Cheng (UAF-CFOS)
 // Date: 1/15/23
 
@@ -29,6 +28,10 @@ Eigen::SparseMatrix<Type> construct_Q(int n_years, // Integer of years
   Eigen::SparseMatrix<Type> Omega(total_n,total_n); // Omega matrix (variances)
   Eigen::SparseMatrix<Type> Q_sparse(total_n, total_n); // Precision matrix
   
+  // rho_a = Type(2)/(Type(1) + exp(-Type(2) * rho_a )) - Type(1); 
+  // rho_y = Type(2)/(Type(1) + exp(-Type(2) * rho_y )) - Type(1); 
+  // rho_c = Type(2)/(Type(1) + exp(-Type(2) * rho_c )) - Type(1); 
+    
   for(int n = 0; n < total_n; n++) {
     
     // Define year and age objects
@@ -163,7 +166,7 @@ Type objective_function<Type>::operator() ()
   PARAMETER(ln_k); // vonB brody growth coefficient
   PARAMETER(ln_alpha); // WL relationship conversion factor
   PARAMETER(ln_beta); // WL relationship allometric scaling
-  PARAMETER_ARRAY(Y_at); // Random Effects Weight-at-age array
+  PARAMETER_ARRAY(ln_Y_at); // Random Effects Weight-at-age array
   
   // Define precision matrix for GMRF
   Eigen::SparseMatrix<Type> Q_sparse(total_n, total_n); // Precision matrix
@@ -177,7 +180,7 @@ Type objective_function<Type>::operator() ()
   Type jnLL = 0;
 
   // LIKELIHOOD SECTION ------------------------
-  array<Type> mu_at(Y_at.rows(), Y_at.cols()); // Mean weight at age across time
+  array<Type> mu_at(ln_Y_at.rows(), ln_Y_at.cols()); // Mean weight at age across time
   
   // Transform vonB and WL parameters
   Type L0 = exp(ln_L0);
@@ -197,13 +200,13 @@ Type objective_function<Type>::operator() ()
   // Evaluate WAA data likelihood
   for(int a = 0; a < X_at.rows(); a++) {
   for(int t = 0; t < X_at.cols(); t++) {
-    jnLL -= dnorm(Y_at(a,t), X_at(a,t), Xse_at(a,t), true);
+    jnLL -= dnorm(ln_Y_at(a,t), log(X_at(a,t)), Xse_at(a,t), true);
   } // t loop
 } // a loop
 
   // Evaluate GMRF with precision matrix estimating cohort, year, and age correlations
-  array<Type> eps_at(Y_at.rows(), Y_at.cols()); // matrix of process errors
-  eps_at = Y_at - mu_at; // process errors relative to the mean across age and time
+  array<Type> eps_at(ln_Y_at.rows(), ln_Y_at.cols()); // matrix of process errors
+  eps_at = ln_Y_at - log(mu_at); // process errors relative to the mean across age and time
   jnLL += GMRF(Q_sparse)(eps_at); 
 
   // REPORT SECTION ------------------------

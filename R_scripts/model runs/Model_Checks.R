@@ -33,7 +33,7 @@ library(here)
 library(tidyverse)
 
 # Load in models
-load(here("output", "marg_var_ebs_pollock_waa_models.RData")) # obj is called models
+load(here("output", "cond_var_ebs_pollock_waa_models.RData")) # obj is called models
 
 # Generate full factorial design for naming models
 map_factorial <- tidyr::crossing(rho_y = 0:1, rho_c = 0:1, rho_a = 0:1) %>% 
@@ -103,6 +103,11 @@ model_diag$model[model_diag$model == ""] <- "None"
 # Pivot this dataframe longer 
 # Parmeter MLEs here only (doing ses and binding in 2 steps)
 model_pars_long <- model_diag %>% 
+  # mutate(
+  #   rho_a_trans = 2 / (1 + exp(-2 * rho_a)) - 1,
+  #   rho_y_trans = 2 / (1 + exp(-2 * rho_y)) - 1,
+  #   rho_c_trans = 2 / (1 + exp(-2 * rho_c)) - 1
+  # ) %>% # transform rhos
   dplyr::select(-rho_a_sd, -rho_y_sd, -rho_c_sd, -log_sigma2_sd) %>% 
   pivot_longer(cols = c(rho_a, rho_c, rho_y, log_sigma2), 
                names_to = "parameters",  values_to = "mle_val")
@@ -118,7 +123,19 @@ model_diag_long <- cbind(model_pars_long, model_se_long)
 # Create lwr and upr confidence intervals here
 model_diag_long <- model_diag_long %>% 
   mutate(lwr_95 = mle_val - (1.96 * sd_val),
-         upr_95 = mle_val + (1.96 * sd_val))
+         upr_95 = mle_val + (1.96 * sd_val),
+         dAIC = min(AIC) - AIC)
+
+# Calcualte wAIC
+wAIC <- model_diag_long %>% 
+  group_by(model) %>% 
+  summarize(dAIC = abs(mean(dAIC))) %>% 
+  ungroup() %>% 
+  mutate(wAIC = exp(-0.5 * dAIC) / sum(exp(-0.5 * dAIC)))
+
+# Left join wAIC
+model_diag_long <- model_diag_long %>% 
+  left_join(wAIC %>% dplyr::select(wAIC, model), by = c("model"))
 
 # Output to csv
 write.csv(model_diag_long, here("output", "model_diag_vals.csv"))

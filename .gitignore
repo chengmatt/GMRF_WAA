@@ -10,3 +10,4 @@ figs/.DS_Store
 *.o
 *.dll
 *.so
+.DS_Store

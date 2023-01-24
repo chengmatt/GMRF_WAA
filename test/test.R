@@ -52,7 +52,7 @@ data <- list( years = years,
               X_at = X_at,
               Xse_at = Xse_at,
               ay_Index = ay_Index,
-              Var_Param = 1) # Var_Param == 0 Conditional, == 1 Marginal
+              Var_Param = 0) # Var_Param == 0 Conditional, == 1 Marginal
 
 # Input parameters into a list
 parameters <- list( rho_y = 0,
@@ -60,7 +60,7 @@ parameters <- list( rho_y = 0,
                     rho_c = 0.3,
                     log_sigma2 = log(0.1),
                     ln_L0 = log(0.1),
-                    ln_Linf = log(1),  
+                    ln_Linf = log(90),  
                     ln_k = log(0.2),
                     ln_alpha = log(1),
                     ln_beta = log(3), # Fix at isometric
@@ -86,15 +86,6 @@ diag(solve(report$Q_sparse))
 # Now, optimize the function
 waa_optim <- stats::nlminb(waa_model$par, waa_model$fn, waa_model$gr,  
                            control = list(iter.max = 1e5, eval.max = 1e5))
-
-n.newton <- 3
-# Take some additional newton steps to make sure we reach a minimum
-tryCatch(expr = for(i in 1:n.newton) {
-  g = as.numeric(waa_model$gr(waa_optim$par))
-  h = optimHess(waa_optim$par, fn = waa_model$fn, gr = waa_model$gr)
-  waa_optim$par = waa_optim$par - solve(h,g)
-  waa_optim$objective = waa_model$fn(waa_optim$par)
-}, error = function(e){e})
 
 report = waa_model$report()
 plot(report$mu_at[,1], type = "l")

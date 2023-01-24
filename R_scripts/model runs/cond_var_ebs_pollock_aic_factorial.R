@@ -5,8 +5,6 @@
 
 # Set up ------------------------------------------------------------------
 
-source(here("R_scripts", "margAIC.R"))
-
 library(here)
 library(tidyverse)
 library(TMB)
@@ -58,16 +56,17 @@ data <- list( years = years,
               Var_Param = 0) # Var_Param == 0 Conditional, == 1 Marginal
 
 # Input parameters into a list
-parameters <- list( rho_y = 0.1,
-                    rho_a = 0.5,
-                    rho_c = 0.3,
+parameters <- list( rho_y = 0,
+                    rho_a = 0,
+                    rho_c = 0,
                     log_sigma2 = log(0.1),
-                    ln_L0 = log(0.1),
-                    ln_Linf = log(1),  
-                    ln_k = log(0.2),
-                    ln_alpha = log(1),
+                    ln_L0 = log(45),
+                    ln_Linf = log(80),  # Fixed at arbitrary value
+                    ln_k = log(0.15),
+                    ln_alpha = log(3.5e-7), # Start alpha at a reasonable space 
+                    # Starting value for alpha derived from a run where none of the rhos were estimated.
                     ln_beta = log(3), # Fix at isometric
-                    Y_at = array(0,dim=dim(X_at)) ) 
+                    ln_Y_at = array(0,dim=dim(X_at)) ) 
 
 
 # Run factorial models ----------------------------------------------------
@@ -77,7 +76,7 @@ map_factorial <- tidyr::crossing(rho_y = 0:1, rho_c = 0:1, rho_a = 0:1) %>%
   data.frame()
 
 # Define number of extra newton steps we want to take
-n.newton <- 3
+n.newton <- 5
 
 # Empty list to store model objects
 models <- list()
@@ -96,18 +95,18 @@ for(n_fact in 1:nrow(map_factorial)) {
     if(map_fact[1,names(map_fact)[m]] == 0) { # if factorial = 0, turn estimation off
       map[[m]] <- factor(NA)
       names(map)[m] <- names(map_fact)[m] # Name list object
-    } else{ # factorail == 1
+    } else{ # factorial == 1
       map[[m]] <- factor(1)
       names(map)[m] <- names(map_fact)[m] # Name list object
     } # ifelse statement for constructing map list object
   } # end m loop
   
-  map <- rlist::list.append(map, ln_Linf = factor(NA), ln_beta = factor(NA))
+  map <- rlist::list.append(map, "ln_Linf" = factor(NA), "ln_beta" = factor(NA))
   
   # Now, make AD model function
   waa_model <- MakeADFun(data = data, parameters = parameters,
-                         map = map, random = "Y_at",
-                         DLL = "triple_sep_waa")
+                         map = map, random = "ln_Y_at",
+                         DLL = "triple_sep_waa", silent = FALSE)
   
   # Now, optimize the function
   waa_optim <- stats::nlminb(waa_model$par, waa_model$fn, waa_model$gr,  
@@ -131,7 +130,9 @@ for(n_fact in 1:nrow(map_factorial)) {
   waa_model$sd_rep <- sdreport(waa_model)
   
   models[[n_fact]] <- waa_model
-
+  
+  print(n_fact)
+  
 } # loop through to run multiple models
 
 save(models, file = here("output", "cond_var_ebs_pollock_waa_models.RData"))

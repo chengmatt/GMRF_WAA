@@ -5,8 +5,6 @@
 
 # Set up ------------------------------------------------------------------
 
-source(here("R_scripts", "margAIC.R"))
-
 library(here)
 library(tidyverse)
 library(TMB)
@@ -26,6 +24,7 @@ waa_df <- read.csv(here("data", "ebs_waa.csv")) %>%
 waa_std_df <- read.csv(here("data", "ebs_waa_std.csv")) %>% 
   filter(source == "fishery") %>% 
   dplyr::select(-source)
+
 
 # Set up TMB data ----------------------------------------
 
@@ -54,19 +53,19 @@ data <- list( years = years,
               X_at = X_at,
               Xse_at = Xse_at,
               ay_Index = ay_Index,
-              Var_Param = 1) # Var_Param == 0 Conditional, == 1 Marginal
+              Var_Param = 0) # Var_Param == 0 Conditional, == 1 Marginal
 
 # Input parameters into a list
-parameters <- list( rho_y = 0.1,
-                    rho_a = 0.5,
-                    rho_c = 0.3,
-                    log_sigma2 = log(0.1),
+parameters <- list( rho_y = 0,
+                    rho_a = 0,
+                    rho_c = 0,
+                    log_sigma2 = log(0.5),
                     ln_L0 = log(0.1),
-                    ln_Linf = log(1),  
-                    ln_k = log(0.2),
+                    ln_Linf = log(80),  # Fixed at arbitrary value
+                    ln_k = log(0.1),
                     ln_alpha = log(1),
                     ln_beta = log(3), # Fix at isometric
-                    Y_at = array(0,dim=dim(X_at)) ) 
+                    Y_at = array(rnorm(1, 0, 1),dim=dim(X_at)) ) 
 
 
 # Run factorial models ----------------------------------------------------
