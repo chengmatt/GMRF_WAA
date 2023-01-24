@@ -1,4 +1,4 @@
-## Unlocking the triad of age, year, and cohort effects in stock assessment: a proof-of-concept study
+## Estimating age, year, and cohort effects in stock assessments: demonstration of a computationally efficient and reproducible framework
 
 ### Authors
 Matthew LH. Cheng,<sup>1</sup> James T. Thorson,<sup>2</sup> James N. Ianelli,<sup>3</sup> Curry J. Cunningham<sup>1</sup> 
