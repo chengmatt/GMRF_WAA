@@ -90,11 +90,11 @@ function( n_a,
 # Explore
 n_a = 13
 n_t = 31
-pcorr_age = 0.2
-pcorr_year = 0.3
-pcorr_cohort = 0.1
+pcorr_age = 0.
+pcorr_year = 0.6
+pcorr_cohort = 0.4
 # #marg_var = condvar / (1 - pcorr_age^2 - pcorr_year^2 - pcorr_cohort^2)
-margvar = 0.1
+margvar = 0.01
 # margvar * (1 - pcorr_age^2 - pcorr_year^2)
 
 Q = make_precision(n_a, n_t, pcorr_age, pcorr_year, pcorr_cohort, margvar)

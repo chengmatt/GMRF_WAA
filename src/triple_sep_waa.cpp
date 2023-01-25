@@ -27,10 +27,6 @@ Eigen::SparseMatrix<Type> construct_Q(int n_years, // Integer of years
   I.setIdentity(); // Set I to identity matrix
   Eigen::SparseMatrix<Type> Omega(total_n,total_n); // Omega matrix (variances)
   Eigen::SparseMatrix<Type> Q_sparse(total_n, total_n); // Precision matrix
-  
-  // rho_a = Type(2)/(Type(1) + exp(-Type(2) * rho_a )) - Type(1); 
-  // rho_y = Type(2)/(Type(1) + exp(-Type(2) * rho_y )) - Type(1); 
-  // rho_c = Type(2)/(Type(1) + exp(-Type(2) * rho_c )) - Type(1); 
     
   for(int n = 0; n < total_n; n++) {
     

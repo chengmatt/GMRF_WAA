@@ -33,7 +33,7 @@ library(here)
 library(tidyverse)
 
 # Load in models
-load(here("output", "cond_var_ebs_pollock_waa_models.RData")) # obj is called models
+load(here("output", "marg_var_ebs_pollock_waa_models.RData")) # obj is called models
 
 # Generate full factorial design for naming models
 map_factorial <- tidyr::crossing(rho_y = 0:1, rho_c = 0:1, rho_a = 0:1) %>% 
