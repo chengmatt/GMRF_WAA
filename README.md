@@ -34,5 +34,5 @@ mixed-effects, stock assessment, state-space, age-and time-varying, cohort effec
 | --------| --------|
 |Precision Matrix| Construction of the precision matrix with marginal variance can be [found here](https://github.com/chengmatt/Triple_Separability/blob/master/R_scripts/make_precision/Construct_precision_2023-01-02.R) as a R function, or [here](https://github.com/chengmatt/GMRF_WAA/blob/26b38d6e5dd64bd79d16f1c1d4f3671364bfb93d/src/GMRF_WAA.cpp) as a local function defined in TMB|
 |Condtional Variance &Omega; matrix | Code for implementing the &Omega; matrix with condtional variance can be found [here](https://github.com/chengmatt/GMRF_WAA/blob/26b38d6e5dd64bd79d16f1c1d4f3671364bfb93d/src/GMRF_WAA.cpp#L78-L87)|
-|Marginal Variance &Omega; matrix | Code for implementing the &Omega; matrix with marginal variance in TMB can be found [here](https://github.com/chengmatt/GMRF_WAA/blob/26b38d6e5dd64bd79d16f1c1d4f3671364bfb93d/src/GMRF_WAA.cpp#L89-L122)|
+|Marginal Variance &Omega; matrix | Code for implementing the &Omega; matrix with marginal variance in TMB can be found [here](https://github.com/chengmatt/GMRF_WAA/blob/6ebbeecfe4dd002de66c655d7d687f688cdd1954/src/triple_sep_waa.cpp#L83-L116?plain=1)|
 
