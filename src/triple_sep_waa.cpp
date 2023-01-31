@@ -5,6 +5,12 @@
 
 #include<TMB.hpp>
 
+// Function for detecting NAs
+template<class Type>
+bool isNA(Type x){
+  return R_IsNA(asDouble(x));
+}
+
 template<class Type> 
 Type objective_function<Type>::operator() () 
   {
@@ -126,7 +132,9 @@ Type objective_function<Type>::operator() ()
   // Evaluate WAA data likelihood
   for(int a = 0; a < X_at.rows(); a++) {
   for(int t = 0; t < X_at.cols(); t++) {
-    jnLL -= dnorm(Y_at(a,t), X_at(a,t), Xse_at(a,t), true);
+    if( !isNA(X_at(a,t)) ){
+      jnLL -= dnorm(X_at(a,t), Y_at(a,t), Xse_at(a,t), true);
+    }
   }}
 
   // Evaluate GMRF with precision matrix estimating cohort, year, and age correlations
