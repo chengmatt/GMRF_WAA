@@ -122,8 +122,11 @@ model_diag_long <- cbind(model_pars_long, model_se_long)
 
 # Create lwr and upr confidence intervals here
 model_diag_long <- model_diag_long %>% 
-  mutate(lwr_95 = mle_val - (1.96 * sd_val),
-         upr_95 = mle_val + (1.96 * sd_val),
+  mutate(lwr_95 = ifelse(parameters == "log_sigma2", exp(mle_val - (1.96 * sd_val)),
+                         mle_val - (1.96 * sd_val)),
+         upr_95 = ifelse(parameters == "log_sigma2", exp(mle_val + (1.96 * sd_val)),
+                         mle_val + (1.96 * sd_val)),
+         mle_val = ifelse(parameters == "log_sigma2", exp(mle_val), mle_val),
          dAIC = min(AIC) - AIC)
 
 # Calcualte wAIC
