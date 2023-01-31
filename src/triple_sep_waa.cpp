@@ -4,6 +4,13 @@
 
 #include<TMB.hpp>
 
+// Function for detecting NAs
+template<class Type>
+bool isNA(Type x){
+  return R_IsNA(asDouble(x));
+}
+
+// Function to assemble sparse precision matrix
 template<class Type>
 // @description: Function that constructs a precision matrix, separable along the
 // year, age, and cohort axis. Var_Param allows users to switch between conditional
@@ -11,9 +18,9 @@ template<class Type>
 Eigen::SparseMatrix<Type> construct_Q(int n_years, // Integer of years
                                       int n_ages, // Integer of ages
                                       matrix<Type> ay_Index, // Index matrix to construct
-                                      Type rho_y, // Correlation by years
-                                      Type rho_a, // Correlation by ages
-                                      Type rho_c, // Correlation by cohort
+                                      Type rho_y, // Partial correlation by years
+                                      Type rho_a, // Partial correlation by ages
+                                      Type rho_c, // Partial correlation by cohort
                                       Type log_sigma2, // Variance parameter governing GMRF
                                       int Var_Param // Parameterization of Variance ==0 (Conditional), == 1(Marginal)
                                         ) {
@@ -153,9 +160,9 @@ Type objective_function<Type>::operator() ()
   // == 0 (Conditional), == 1(Marginal)
   
   // PARAMETER SECTION ----------------------------------------
-  PARAMETER(rho_a); // Correlation by age
-  PARAMETER(rho_y); // Correlation by year
-  PARAMETER(rho_c); // Correlation by cohort
+  PARAMETER(rho_a); // Partial correlation by age
+  PARAMETER(rho_y); // Partial correlation by year
+  PARAMETER(rho_c); // Partial correlation by cohort
   PARAMETER(log_sigma2); // Variance of the GMRF process
   PARAMETER(ln_L0); // vonB length at age 0
   PARAMETER(ln_Linf); // vonB asymptotic length
@@ -196,7 +203,9 @@ Type objective_function<Type>::operator() ()
   // Evaluate WAA data likelihood
   for(int a = 0; a < X_at.rows(); a++) {
   for(int t = 0; t < X_at.cols(); t++) {
-    jnLL -= dnorm(ln_Y_at(a,t), log(X_at(a,t)), Xsd_at(a,t), true);
+    if( !isNA(X_at(a,t)) ){
+      jnLL -= dnorm(ln_Y_at(a,t), log(X_at(a,t)), Xsd_at(a,t), true);
+    }
   } // t loop
 } // a loop
   
