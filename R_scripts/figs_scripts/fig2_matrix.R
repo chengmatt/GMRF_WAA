@@ -68,7 +68,9 @@ print(
   ggplot(corr_all, aes(factor(Year), factor(Age), fill = value )) +
     geom_tile(alpha = 1.5) +
     facet_wrap(~type, ncol = 3, labeller = label_parsed) +
-    scale_fill_gradient2() +
+    scale_fill_gradient2(midpoint = 0, 
+                         high = scales::muted("red"),
+                         low = scales::muted("blue")) +
     scale_y_discrete(breaks = seq(0, 8, 2)) +
     scale_x_discrete(breaks = seq(0, 25, 5)) +
     labs(x = "Year", y = "Age", fill = "Value") +

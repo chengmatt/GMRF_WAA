@@ -33,13 +33,18 @@ map_factorial <- tidyr::crossing(rho_y = 0:1, rho_c = 0:1, rho_a = 0:1) %>%
 
 # Relevel factors here
 model_diag <- model_diag %>% 
-  mutate(model = factor(model, levels = c("None", "a", "y", "c",
-                                          "a_y", "a_c", "y_a", "y_c", "y_a_c")),
+  mutate(model = factor(model,
+                        levels = c("None", "a", "y", "c",
+                                   "a_y", "a_c", "y_a", "y_c", "y_a_c"),
+                        labels = c("None", "Age", "Year", "Cohort", 
+                                   "Age+Year", "Age+Cohort", "Year+Age", 
+                                   "Year+Cohort", "Year+Age+Cohort")),
          parameters = factor(parameters,
                              levels = c("rho_a", "rho_y", 
                                         "rho_c", "log_sigma2"),
                              labels = c( bquote(rho[a]), bquote(rho[y]), 
                                          bquote(rho[c]), bquote(sigma^2) )))
+
 
 # Create model names to differentiate models
 model_names <- map_factorial %>% 
@@ -51,20 +56,19 @@ model_names <- map_factorial %>%
   tidyr::unite('model', na.rm = TRUE)
 
 # Dimensions
-years <- 1991:2021
+years <- 1991:2024 # Add projection years
 ages <- 3:15
 
 # Plot parameter estimates and WAA RE -------------------------------------------------
 
 # Visualize parameters
+pdf(here("figs", "par_est.pdf"), width = 15, height = 8)
 (par_plot <- ggplot(model_diag, aes(x = model, y = mle_val,
                                          ymin = lwr_95, ymax = upr_95,
                                          shape = factor(nlminb_conv),
                                          color = model)) +
    geom_pointrange(size = 1.1) +
    ggsci::scale_color_jco() +
-   scale_shape_manual(values = c(19, 1), 
-                      labels = c("Converged", "Not Converged")) +
    facet_wrap(~parameters, scales = "free_y", labeller = label_parsed, ncol = 1) +
    guides(color="none") +
    theme_bw() +
@@ -73,6 +77,7 @@ ages <- 3:15
          axis.text = element_text(size = 15, color = "black"),
          strip.text = element_text(size = 17)) +
    labs(x = "Model", y = "Parameter Estiamte", shape = "Convergence"))
+dev.off()
 
 # Visualize AIC across models
 (aic_plot <- ggplot(model_diag, aes(x = model, y = AIC, group = 1)) +
@@ -102,12 +107,15 @@ mean_WAA_all <- data.frame()
 # extract waa_re values
 for(n_fact in 1:nrow(map_factorial)) {
   
-  # Extract random parameter values
-  rand_par_vals <- exp(models[[n_fact]]$sd_rep$par.random)
-  
   # coerce these values into a matrix
   WAA_re <- matrix(
     t(exp(models[[n_fact]]$env$parList()$ln_Y_at)),
+    ncol = length(ages), nrow = length(years)
+  )
+  
+  # standard deviations
+  WAA_sd <- matrix(
+    t(sqrt(models[[n_fact]]$sd_rep$diag.cov.random)),
     ncol = length(ages), nrow = length(years)
   )
   
@@ -118,13 +126,15 @@ for(n_fact in 1:nrow(map_factorial)) {
   WAA_re_df$ages <- WAA_re_df$ages + 2 # Adding the true start age back
   WAA_re_df$yrs <- WAA_re_df$yrs + 1990 # Adding the true start year back
   
-  # Do the same but for mean WAA
+  # do the same for the sds
+  WAA_re_sd_df <- reshape2::melt(WAA_sd)
+  colnames(WAA_re_sd_df) <- c("yrs", "ages", "sd")
+  WAA_re_df$sd <- WAA_re_sd_df$sd
+  
   mean_waa <- reshape2::melt(models[[n_fact]]$rep$mu_at[,1]) %>% 
-  mutate(ages = 3:15,
-         model = model_names$model[n_fact]) %>% 
+  mutate(ages = 3:15, model = model_names$model[n_fact]) %>% 
   rename(mean_waa = value)
-  
-  
+
   # Now rbind to everything else
   WAA_re_df_all <- rbind(WAA_re_df_all, WAA_re_df)
   mean_WAA_all <- rbind(mean_waa, mean_WAA_all)
@@ -156,7 +166,7 @@ WAA_re_df_all <- WAA_re_df_all %>%
   left_join(mean_WAA_all, by = c("ages", "model")) %>% 
   mutate(anom = (vals - mean_waa) / mean_waa)
 
-tile_plot <- ggplot(WAA_re_df_all, 
+tile_plot <- ggplot(WAA_re_df_all %>% filter(yrs <= 2021), 
                     aes(y = factor(ages), x = factor(yrs), fill = anom)) +
   geom_tile(alpha = 1) +
   scale_y_discrete(breaks = seq(3, 15, 3)) +
@@ -177,7 +187,8 @@ tile_plot <- ggplot(WAA_re_df_all,
         legend.key.width = unit(1.5, "cm"))
 
 line_plot <- ggplot(WAA_re_df_all %>% 
-                      filter(ages %in% c(seq(3, 15, 2))), 
+                      filter(ages %in% c(seq(3, 15, 2)),
+                             yrs <= 2021), 
                       aes(x = factor(yrs), y = vals, color = factor(ages),
                       group = factor(ages))) +
   geom_line(alpha = 1, size = 1.6) +
@@ -207,48 +218,34 @@ plot_grid(tile_plot, line_plot, rel_heights = c(0.8, 1), axis = "bl", align = "h
 dev.off()
 
 
-# Uncertainty -------------------------------------------------------------
+# Uncertainty in projections -------------------------------------------------------------
 
-# Get CV
-mod_none_cv <- (models[[1]]$sd_rep$sd / exp(models[[1]]$sd_rep$value)) * 100
-mod_all_cv <- (models[[8]]$sd_rep$sd / exp(models[[8]]$sd_rep$value)) * 100
+# Get CV and calculate 95% normal CIs
+WAA_re_df_all <- WAA_re_df_all %>% 
+  mutate(CV = (sd / vals) * 100,
+         lwr_95 = vals - (1.96 * sd),
+         upr_95 = vals + (1.96 * sd))
 
-# Coerce into dataframe
-mod_none_df <- reshape2::melt(matrix(mod_none_cv, 
-                              nrow = length(years), ncol = length(ages))) %>% 
-  mutate(Model = "None")
-
-mod_all_df <- reshape2::melt(matrix(mod_all_cv, 
-                         nrow = length(years), ncol = length(ages))) %>% 
-  mutate(Model = "Year+Age+Cohort")
-
-# Bind to df
-mod_cv_df <- rbind(mod_none_df, mod_all_df)
-colnames(mod_cv_df) <- c("Year", "Age", "Vals", "Model")
-
-# Now plot the differences!
-mod_cv_df_wide <- mod_cv_df %>% 
-  pivot_wider(names_from = "Model", values_from = "Vals") %>% 
-  mutate(Difference = None - `Year+Age+Cohort`)
-  
-pdf(here("figs", "cv_waa_tile.pdf"), width = 15, height = 10)
-ggplot(mod_cv_df_wide, aes(x = factor(Year + 1990) , y = factor(Age + 2), 
-                           fill = Difference )) +
-  geom_tile() +
-  geom_text(aes(label = round(Difference, 2))) +
-  scale_y_discrete(breaks = seq(3, 15, 3)) +
-  scale_x_discrete(breaks = seq(1990, 2020, 5)) +
-  scale_fill_gradient2(midpoint = 0, 
-                       high = scales::muted("red"), 
-                       low = scales::muted("blue")) +
+png(here("figs", "proj_waa_sd.png"), width = 1400, height = 800)
+ggplot(WAA_re_df_all %>% 
+         filter(yrs > 2018, model %in% c("None", "Year+Age+Cohort",
+                                         "Year+Age")), 
+       aes(x = factor(yrs), y = vals, color = factor(model), group = factor(model),
+           fill = model)) +
+  geom_ribbon(aes(ymin = lwr_95, ymax = upr_95), alpha = 0.1) +
+  geom_line(alpha = 1, size = 1.75) +
+  ggsci::scale_color_jco( ) +
+  ggsci::scale_fill_jco( ) +
   theme_bw() +
-  labs(x = "Year", y = "Age", 
-       fill = "CV(%) difference (Model None - Year+Age+Cohort)") +
+  facet_wrap(~ages, ncol = 5, scales = "free") +
+  guides(color=guide_legend(ncol=3)) +
+  labs(x = "Year", y = "Weight", color = "Model", fill = "Model") +
   theme(axis.title = element_text(size = 17),
         axis.text = element_text(size = 15, color = "black"),
         legend.title = element_text(size = 15),
         legend.text = element_text(size = 13),
         strip.text = element_text(size = 17),
         legend.position = "top",
-        legend.key.width = unit(1.5, "cm"))
+        legend.background = element_blank(),
+        legend.key.width = unit(0.75, "cm"))
 dev.off()

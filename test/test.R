@@ -21,11 +21,14 @@ waa_std_df <- read.csv(here("data", "ebs_waa_std.csv")) %>%
 
 # Compile and load in model
 setwd(here("src"))
-compile("triple_sep_waa.cpp")
-dyn.load(dynlib("triple_sep_waa"))
+compile("GMRF_WAA.cpp")
+dyn.load(dynlib("GMRF_WAA"))
 
 
 # Set up TMB data ----------------------------------------
+
+# Number of projection years
+n_proj_years <- 2
 
 # Years
 years <- waa_df$year
@@ -35,6 +38,12 @@ ages <- parse_number(colnames(waa_df)[-1])
 
 # Read in data weight at age matrix
 X_at <- t(as.matrix(waa_df[,-1])) # removing first col (year column)
+
+# Create projection columns
+proj_cols <- matrix(NA, nrow = length(ages), ncol = n_proj_years)
+
+# Append NA for projection year
+X_at <- cbind(X_at, proj_cols) 
 
 # Read in standard deviations for weight at age matrix
 Xse_at <- t(as.matrix(waa_std_df[,c(-1)])) # removing first col (year column) 
@@ -47,7 +56,7 @@ Xsd_at <- sqrt((log((Xcv_at)^2 + 1))/(log(10)^2))
 
 # Create an index for ages and years to feed into TMB, which helps construct the precision matrix
 ay_Index <- as.matrix(expand.grid("age" = seq_len(length(ages)), 
-                                  "year" = seq_len(length(years)) ))
+                                  "year" = seq_len(length(years) + n_proj_years) ))
 
 
 # Set up TMB Model --------------------------------------------------------
@@ -58,6 +67,7 @@ data <- list( years = years,
               X_at = X_at,
               Xsd_at = Xsd_at,
               ay_Index = ay_Index,
+              n_proj_years = n_proj_years,
               Var_Param = 0) # Var_Param == 0 Conditional, == 1 Marginal
 
 # Input parameters into a list
@@ -78,13 +88,13 @@ map = list( "ln_Linf" = factor(NA),
             "ln_beta" = factor(NA)
 )
 
-compile("triple_sep_waa.cpp")
-dyn.load(dynlib("triple_sep_waa"))
+compile("GMRF_WAA.cpp")
+dyn.load(dynlib("GMRF_WAA"))
 
 # Now, make AD model function
 waa_model <- MakeADFun(data = data, parameters = parameters, 
                        random = "ln_Y_at",
-                       DLL = "triple_sep_waa",
+                       DLL = "GMRF_WAA",
                        map = map, silent = FALSE)
 
 report = waa_model$report()
@@ -121,17 +131,18 @@ Q = waa_model$report()$Q
 V = solve(Q)
 diag(V)
 R = cov2cor(V)
-P_at = matrix( R[,403], nrow=length(ages), ncol=length(years) )
+P_at = matrix( R[,403], nrow=length(ages), ncol=length(years) + n_proj_years)
 image(t(P_at)) 
 
 
 # Extract values ----------------------------------------------------------
 
 # Extract WAA random effects
-WAA_re <- t(waa_model$env$parList()$Y_at)
+WAA_re <- t(waa_model$env$parList()$ln_Y_at)
 
 # Munge WAA for plotting
 WAA_re <- reshape2::melt(WAA_re) 
+WAA_re$value <- exp(WAA_re$value)
 colnames(WAA_re) <- c("yrs", "ages", "vals")
 WAA_re <- WAA_re %>% mutate(Type = "Random")
 
