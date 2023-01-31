@@ -14,27 +14,26 @@ library(tidyverse)
 n_a = 8
 n_t = 25
 
-pcorr_age = c(0.1, 0.2, 0.7)
-pcorr_year = c(0.2, 0.7, 0.1)
-pcorr_cohort = c(0.7, 0.1, 0.2)
-margvar = 0.3
+pcorr_age = c(0.1, 0.1, 0.8)
+pcorr_year = c(0.1, 0.7, 0.1)
+pcorr_cohort = c(0.8, 0.1, 0.1)
+margvar = 1e-03
 
 # Get label types
-type = c("pa = 0.1 py = 0.2 pc = 0.7",
-         "pa = 0.2 py = 0.7 pc = 0.1",
-         "pa = 0.7 pc = 0.1 pc = 0.2")
+type = c("pa = 0.1 py = 0.1 pc = 0.8",
+         "pa = 0.1 py = 0.8 pc = 0.1",
+         "pa = 0.8 pc = 0.1 pc = 0.1")
 
 # Make labels bquote to plot greek letters
-pc_high = paste(bquote("~rho[a] == 0.1~~"), bquote("~rho[y] == 0.2~~"), bquote("~rho[c] == 0.7" )  )
-py_high = paste(bquote("~rho[a] == 0.2~~"), bquote("~rho[y] == 0.7~~"), bquote("~rho[c] == 0.1" )  )
-pa_high = paste(bquote("~rho[a] == 0.7~~"), bquote("~rho[y] == 0.1~~"), bquote("~rho[c] == 0.2" )  )
+pc_high = paste(bquote("~rho[a] == 0.1~~"), bquote("~rho[y] == 0.1~~"), bquote("~rho[c] == 0.8" )  )
+py_high = paste(bquote("~rho[a] == 0.1~~"), bquote("~rho[y] == 0.8~~"), bquote("~rho[c] == 0.1" )  )
+pa_high = paste(bquote("~rho[a] == 0.8~~"), bquote("~rho[y] == 0.1~~"), bquote("~rho[c] == 0.1" )  )
 
 # Store values
 corr_all <- data.frame()
 
 # Loop through to create Y_at matrix dataframe for different corr values
-set.seed(3124)
-
+set.seed(666)
 for(i in 1:length(pcorr_age)) {
   
   # Make precision matrix
@@ -58,9 +57,9 @@ for(i in 1:length(pcorr_age)) {
 
 # Get greek letters 
 corr_all <- corr_all %>% 
-  mutate(type = factor(type, levels = c("pa = 0.7 pc = 0.1 pc = 0.2",
-                                        "pa = 0.2 py = 0.7 pc = 0.1",
-                                        "pa = 0.1 py = 0.2 pc = 0.7"),
+  mutate(type = factor(type, levels = c("pa = 0.8 pc = 0.1 pc = 0.1",
+                                        "pa = 0.1 py = 0.8 pc = 0.1",
+                                        "pa = 0.1 py = 0.1 pc = 0.8"),
                        labels = c(pa_high, py_high, pc_high)))
 
 pdf(here("figs", "fig2_rmvnorm_panel.pdf"), height = 5, width = 18)

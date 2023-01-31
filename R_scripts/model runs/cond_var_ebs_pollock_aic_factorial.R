@@ -31,14 +31,14 @@ waa_std_df <- read.csv(here("data", "ebs_waa_std.csv")) %>%
 # Years
 years <- waa_df$year
 
-# Ages (goes from age 3 - 15+)
-ages <- parse_number(colnames(waa_df)[-1])
+# Ages (goes from age 3 - 10+) 
+ages <- parse_number(colnames(waa_df)[c(-1)])
 
 # Read in data weight at age matrix
-X_at <- t(as.matrix(waa_df[,-1])) # removing first col (year column)
+X_at <- t(as.matrix(waa_df[,c(-1)])) # removing first col (year column) 
 
 # Read in standard deviations for weight at age matrix
-Xse_at <- t(as.matrix(waa_std_df[,-1])) # removing first col (year column)
+Xse_at <- t(as.matrix(waa_std_df[,c(-1)])) # removing first col (year column) 
 
 # Convert to CV
 Xcv_at <- sqrt( (exp(Xse_at^2) - 1) )
@@ -72,7 +72,7 @@ parameters <- list( rho_y = 0,
                     ln_alpha = log(3.5e-7), # Start alpha at a reasonable space 
                     # Starting value for alpha derived from a run where none of the rhos were estimated.
                     ln_beta = log(3), # Fix at isometric
-                    ln_Y_at = array(0,dim=dim(X_at)) ) 
+                    ln_Y_at = array(0,dim=dim(X_at))) 
 
 
 # Run factorial models ----------------------------------------------------
@@ -82,7 +82,7 @@ map_factorial <- tidyr::crossing(rho_y = 0:1, rho_c = 0:1, rho_a = 0:1) %>%
   data.frame()
 
 # Define number of extra newton steps we want to take
-n.newton <- 5
+n.newton <- 3
 
 # Empty list to store model objects
 models <- list()
@@ -107,7 +107,8 @@ for(n_fact in 1:nrow(map_factorial)) {
     } # ifelse statement for constructing map list object
   } # end m loop
   
-  map <- rlist::list.append(map, "ln_Linf" = factor(NA), "ln_beta" = factor(NA))
+  map <- rlist::list.append(map, "ln_Linf" = factor(NA), 
+                                "ln_beta" = factor(NA))
   
   # Now, make AD model function
   waa_model <- MakeADFun(data = data, parameters = parameters,

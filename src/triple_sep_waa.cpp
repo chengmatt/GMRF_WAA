@@ -199,9 +199,9 @@ Type objective_function<Type>::operator() ()
     jnLL -= dnorm(ln_Y_at(a,t), log(X_at(a,t)), Xsd_at(a,t), true);
   } // t loop
 } // a loop
-
+  
   // Evaluate GMRF with precision matrix estimating cohort, year, and age correlations
-  array<Type> eps_at(ln_Y_at.rows(), ln_Y_at.cols()); // matrix of process errors
+  array<Type> eps_at(ln_Y_at.rows(), ln_Y_at.cols()); // array of process errors
   eps_at = ln_Y_at - log(mu_at); // process errors relative to the mean across age and time
   jnLL += GMRF(Q_sparse)(eps_at); 
 
@@ -212,7 +212,8 @@ Type objective_function<Type>::operator() ()
   // REPORT(B);
   // REPORT(Omega);
   // REPORT(L);
-  REPORT( mu_at );
+  REPORT(mu_at);
+  ADREPORT(ln_Y_at); 
 
   return(jnLL);
   

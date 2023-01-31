@@ -158,10 +158,13 @@ WAA_re_df_all <- WAA_re_df_all %>%
 
 tile_plot <- ggplot(WAA_re_df_all, 
                     aes(y = factor(ages), x = factor(yrs), fill = anom)) +
-  geom_tile(alpha = 0.9) +
+  geom_tile(alpha = 1) +
   scale_y_discrete(breaks = seq(3, 15, 3)) +
   scale_x_discrete(breaks = seq(1990, 2020, 5)) +
-  scale_fill_gradient2(midpoint = 0, breaks = seq(-0.1, 0.6, 0.2)) +
+  scale_fill_gradient2(midpoint = mean(WAA_re_df_all$anom), 
+                       breaks = seq(-0.1, 0.6, 0.2),
+                       high = scales::muted("red"), 
+                       low = scales::muted("blue")) +
   theme_bw() +
   facet_wrap(~model, ncol = 4) +
   labs(x = "Year", y = "Age", fill = "Anomaly relative to mean WAA") +
@@ -174,9 +177,9 @@ tile_plot <- ggplot(WAA_re_df_all,
         legend.key.width = unit(1.5, "cm"))
 
 line_plot <- ggplot(WAA_re_df_all %>% 
-                      filter(ages %in% c(seq(3, 15, 3))), 
-                    aes(x = factor(yrs), y = vals, color = factor(ages),
-                        group = factor(ages))) +
+                      filter(ages %in% c(seq(3, 15, 2))), 
+                      aes(x = factor(yrs), y = vals, color = factor(ages),
+                      group = factor(ages))) +
   geom_line(alpha = 1, size = 1.6) +
   # geom_text(aes(label = ages), size = 4.5) +
   scale_x_discrete(breaks = seq(1990, 2020, 5)) +
@@ -190,16 +193,62 @@ line_plot <- ggplot(WAA_re_df_all %>%
         legend.title = element_text(size = 15),
         legend.text = element_text(size = 13),
         strip.text = element_text(size = 17),
-        legend.position = c(0.065, 0.92),
+        legend.position = c(0.055, 0.92),
         legend.background = element_blank(),
         legend.key.width = unit(0.75, "cm"))
 
 # Now, plot!
 png(here("figs", "ebs_pollock_WAA_models_tile.png"), width = 1400, height = 1000)
 
-plot_grid(tile_plot, line_plot, rel_heights = c(1, 1), axis = "bl", align = "hv",
+plot_grid(tile_plot, line_plot, rel_heights = c(0.8, 1), axis = "bl", align = "hv",
           ncol = 1, labels = c("A", "B"), hjust = c(-2, -2),  
           vjust = c(3, 0), label_size = 23)
 
 dev.off()
 
+
+# Uncertainty -------------------------------------------------------------
+
+# Get CV
+mod_none_cv <- (models[[1]]$sd_rep$sd / exp(models[[1]]$sd_rep$value)) * 100
+mod_all_cv <- (models[[8]]$sd_rep$sd / exp(models[[8]]$sd_rep$value)) * 100
+
+# Coerce into dataframe
+mod_none_df <- reshape2::melt(matrix(mod_none_cv, 
+                              nrow = length(years), ncol = length(ages))) %>% 
+  mutate(Model = "None")
+
+mod_all_df <- reshape2::melt(matrix(mod_all_cv, 
+                         nrow = length(years), ncol = length(ages))) %>% 
+  mutate(Model = "Year+Age+Cohort")
+
+# Bind to df
+mod_cv_df <- rbind(mod_none_df, mod_all_df)
+colnames(mod_cv_df) <- c("Year", "Age", "Vals", "Model")
+
+# Now plot the differences!
+mod_cv_df_wide <- mod_cv_df %>% 
+  pivot_wider(names_from = "Model", values_from = "Vals") %>% 
+  mutate(Difference = None - `Year+Age+Cohort`)
+  
+pdf(here("figs", "cv_waa_tile.pdf"), width = 15, height = 10)
+ggplot(mod_cv_df_wide, aes(x = factor(Year + 1990) , y = factor(Age + 2), 
+                           fill = Difference )) +
+  geom_tile() +
+  geom_text(aes(label = round(Difference, 2))) +
+  scale_y_discrete(breaks = seq(3, 15, 3)) +
+  scale_x_discrete(breaks = seq(1990, 2020, 5)) +
+  scale_fill_gradient2(midpoint = 0, 
+                       high = scales::muted("red"), 
+                       low = scales::muted("blue")) +
+  theme_bw() +
+  labs(x = "Year", y = "Age", 
+       fill = "CV(%) difference (Model None - Year+Age+Cohort)") +
+  theme(axis.title = element_text(size = 17),
+        axis.text = element_text(size = 15, color = "black"),
+        legend.title = element_text(size = 15),
+        legend.text = element_text(size = 13),
+        strip.text = element_text(size = 17),
+        legend.position = "top",
+        legend.key.width = unit(1.5, "cm"))
+dev.off()
