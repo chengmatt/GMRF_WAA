@@ -188,7 +188,8 @@ tile_plot <- ggplot(WAA_re_df_all %>% filter(yrs <= 2021),
 
 line_plot <- ggplot(WAA_re_df_all %>% 
                       filter(ages %in% c(seq(3, 15, 2)),
-                             yrs <= 2021), 
+                             yrs <= 2021,
+                             model %in% c("None", "Year+Age+Cohort")), 
                       aes(x = factor(yrs), y = vals, color = factor(ages),
                       group = factor(ages))) +
   geom_line(alpha = 1, size = 1.6) +
@@ -197,14 +198,14 @@ line_plot <- ggplot(WAA_re_df_all %>%
   ggsci::scale_color_jco( ) +
   theme_bw() +
   facet_wrap(~model, ncol = 4) +
-  guides(color=guide_legend(ncol=3)) +
+  guides(color=guide_legend(ncol=3, override.aes = list(size = 5))) +
   labs(x = "Year", y = "Weight", color = "Ages") +
-  theme(axis.title = element_text(size = 17),
-        axis.text = element_text(size = 15, color = "black"),
-        legend.title = element_text(size = 15),
-        legend.text = element_text(size = 13),
-        strip.text = element_text(size = 17),
-        legend.position = c(0.055, 0.92),
+  theme(axis.title = element_text(size = 21),
+        axis.text = element_text(size = 18, color = "black"),
+        legend.title = element_text(size = 21),
+        legend.text = element_text(size = 18),
+        strip.text = element_text(size = 21),
+        legend.position = c(0.08, 0.92),
         legend.background = element_blank(),
         legend.key.width = unit(0.75, "cm"))
 
@@ -228,24 +229,30 @@ WAA_re_df_all <- WAA_re_df_all %>%
 
 png(here("figs", "proj_waa_sd.png"), width = 1400, height = 800)
 ggplot(WAA_re_df_all %>% 
-         filter(yrs > 2018, model %in% c("None", "Year+Age+Cohort",
-                                         "Year+Age")), 
-       aes(x = factor(yrs), y = vals, color = factor(model), group = factor(model),
+         filter(yrs > 2018, model %in% c("None", "Year+Age+Cohort")), 
+       aes(x = yrs, y = vals, color = factor(model), group = factor(model),
            fill = model)) +
+  annotate(geom = "rect", xmin = 2022, xmax = 2024, ymin = -Inf, ymax = Inf, 
+           fill = "grey", alpha = 0.75, lty = 2, size = 1.5, color = "black") +
   geom_ribbon(aes(ymin = lwr_95, ymax = upr_95), alpha = 0.1) +
   geom_line(alpha = 1, size = 1.75) +
-  ggsci::scale_color_jco( ) +
-  ggsci::scale_fill_jco( ) +
+  ggsci::scale_color_nejm( ) +
+  ggsci::scale_fill_nejm( ) +
   theme_bw() +
   facet_wrap(~ages, ncol = 5, scales = "free") +
   guides(color=guide_legend(ncol=3)) +
   labs(x = "Year", y = "Weight", color = "Model", fill = "Model") +
   theme(axis.title = element_text(size = 17),
         axis.text = element_text(size = 15, color = "black"),
-        legend.title = element_text(size = 15),
-        legend.text = element_text(size = 13),
+        legend.title = element_text(size = 21),
+        legend.text = element_text(size = 17),
         strip.text = element_text(size = 17),
         legend.position = "top",
         legend.background = element_blank(),
         legend.key.width = unit(0.75, "cm"))
 dev.off()
+
+
+# Comparing CVs between best and worst model for terminal projection year
+cv_comp <- WAA_re_df_all %>% 
+  filter(yrs== 2024, model %in% c("None", "Year+Age+Cohort"))

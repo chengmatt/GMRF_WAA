@@ -142,3 +142,5 @@ model_diag_long <- model_diag_long %>%
 
 # Output to csv
 write.csv(model_diag_long, here("output", "model_diag_vals.csv"))
+
+

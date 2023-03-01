@@ -69,3 +69,25 @@ ebs_std %>%
         legend.title = element_text(size = 17),
         legend.text = element_text(size = 15))
 dev.off()
+
+# Visualize as line plot
+ebs_df %>% 
+  pivot_longer(!c(year, source), values_to = "wt", names_to = "ages") %>% 
+  mutate(ages = parse_number(ages) + 2) %>% 
+  filter(source == "fishery",
+         ages %in% c(seq(3, 15, 2))) %>% 
+  ggplot(aes(x = year, y = wt, color = factor(ages))) +
+  geom_line(alpha = 1, size = 2) +
+  ggsci::scale_color_jco( ) +
+  guides(color=guide_legend(ncol=3, override.aes = list(size = 5))) +
+  scale_fill_gradient2(midpoint = mean_wt$mean) +
+  theme_bw() +
+  labs(x = "Year", y = "Weight", color = "Ages") +
+  theme(axis.title = element_text(size = 23),
+        axis.text = element_text(size = 20, color = "black"),
+        legend.title = element_text(size = 21),
+        legend.text = element_text(size = 20),
+        strip.text = element_text(size = 17),
+        legend.position = c(0.08, 0.92),
+        legend.background = element_blank(),
+        legend.key.width = unit(0.75, "cm"))
