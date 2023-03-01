@@ -207,8 +207,8 @@ dev.off()
 # Visualize Variance Forms ------------------------------------------------
 
 # Set up variables here
-n_a = 3
-n_t = 4
+n_a = 8
+n_t = 25
 
 pcorr_age = c(0.1, 0.1, 0.8)
 pcorr_year = c(0.1, 0.8, 0.1)
@@ -229,7 +229,10 @@ pa_high = paste(bquote("~rho[a] == 0.8~~"), bquote("~rho[y] == 0.1~~"), bquote("
 var_type <- c("Conditional", "Marginal")
 
 # Store values
-Cov_all <- data.frame()
+Var_all <- data.frame()
+
+# Get expanded grid to assign ages and years
+ay_grid <- expand.grid(age = seq_len(n_a), year = seq_len(n_t))
 
 # Loop through to create Y_at matrix dataframe for different corr values
 set.seed(666)
@@ -243,36 +246,39 @@ for(j in 1:length(var_type)) {
     V = solve( Q )
     Vdense = as.matrix(V)
     
+    # Now, get the variances/diagonals of the matrix
+    Variance_Diag = diag(Vdense)
+    
+    # Bind with the grid
+    Var_Mat = cbind(ay_grid, Variance_Diag)
+    
     # Munge dataframe
-    Cov_Mat <- reshape::melt(Vdense) %>% 
-      rename(Col = X1, Row = X2) %>% 
-      mutate(type = type[i],
-             var_type = var_type[j])
+    Var_Mat <- Var_Mat %>% 
+      mutate(type = type[i], var_type = var_type[j])
     
     # now bind into one df
-    Cov_all <- rbind(Cov_Mat, Cov_all)
+    Var_all <- rbind(Var_Mat, Var_all)
     
   } # end i loop
 } # end j loop
 
 # Get greek letters 
-Cov_all <- Cov_all %>% 
+Var_all <- Var_all %>% 
   mutate(type = factor(type, levels = c("pa = 0.8 pc = 0.1 pc = 0.1",
                                         "pa = 0.1 py = 0.8 pc = 0.1",
                                         "pa = 0.1 py = 0.1 pc = 0.8"),
-                       labels = c(pa_high, py_high, pc_high)),
-         diag = ifelse(Col == Row, "Variance", "Covariance")) # diagonal matrix
+                       labels = c(pa_high, py_high, pc_high)))
 
 
-pdf(here("figs", "figc1_varcov.pdf"), height = 15, width = 25)
+pdf(here("figs", "figc1_var.pdf"), height = 15, width = 25)
 # Now plot this out!
-ggplot(Cov_all, aes(x = factor(Col), y = factor(Row), fill = value)) +
+ggplot(Var_all, aes(x = factor(year), y = factor(age), fill = Variance_Diag)) +
   geom_tile(alpha = 1) +
-  scale_fill_gradient2(high = scales::muted("red")) +
-  geom_text(aes(label = round(value, 2), color = diag), size = 6.5) +
+  scale_fill_gradient2(low = scales::muted("blue"), high = scales::muted("red")) +
   facet_grid(var_type ~ type, labeller = label_parsed) +
-  labs(x = "Columns", y = "Rows", fill = "Values", color = "Matrix Component") +
-  scale_color_manual(values = c("black", "blue")) +
+  labs(x = "Year", y = "Age", fill = "Variance") +
+  scale_y_discrete(breaks = seq(0, 8, 2)) +
+  scale_x_discrete(breaks = seq(0, 25, 5)) +
   theme_bw() + 
   theme(legend.position = "right",
         legend.text = element_text(size = 19),
@@ -282,5 +288,5 @@ ggplot(Cov_all, aes(x = factor(Col), y = factor(Row), fill = value)) +
         strip.text = element_text(size = 21),
         axis.title = element_text(size = 21),
         axis.text.y = element_text(color = "black", size = 19),
-        axis.text.x = element_text(color = "black", angle = 90, size = 19))
+        axis.text.x = element_text(color = "black", size = 19))
 dev.off() 
