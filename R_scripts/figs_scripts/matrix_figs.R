@@ -186,7 +186,7 @@ pdf(here("figs", "fig3_corr.pdf"), height = 6, width = 18)
   geom_point(alpha = 1, pch = 21) +
   scale_fill_gradient2(low = "white", high = scales::muted("red"),limit = c(0,1)) +
   facet_wrap(~type, labeller = label_parsed, scales = "free_y") +
-  labs(x = "", y = "", fill = "Correlation", size = "Correlation") +
+  labs(x = "Columns", y = "Rows", fill = "Correlation", size = "Correlation") +
   guides(fill = guide_legend(), size = guide_legend())+
   scale_size(range = c(3, 10)) +
   theme_bw() +
@@ -274,7 +274,7 @@ pdf(here("figs", "figc1_var.pdf"), height = 15, width = 25)
 # Now plot this out!
 ggplot(Var_all, aes(x = factor(year), y = factor(age), fill = Variance_Diag)) +
   geom_tile(alpha = 1) +
-  scale_fill_gradient2(low = scales::muted("blue"), high = scales::muted("red")) +
+  scale_fill_gradient2(high = scales::muted("red")) +
   facet_grid(var_type ~ type, labeller = label_parsed) +
   labs(x = "Year", y = "Age", fill = "Variance") +
   scale_y_discrete(breaks = seq(0, 8, 2)) +
