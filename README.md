@@ -1,9 +1,10 @@
-## Estimating age, year, and cohort effects in stock assessments: demonstration of a computationally efficient and reproducible framework
+## Unlocking the triad of age, year, and cohort effects for stock assessment: demonstration of a computationally efficient and reproducible framework using weight-at-age (Submitted to Fisheries Research)
+
 
 ### Authors
 Matthew LH. Cheng,<sup>1</sup> James T. Thorson,<sup>2</sup> James N. Ianelli,<sup>3</sup> Curry J. Cunningham<sup>1</sup> 
 
-<sup>1</sup> Department of Fisheries at Lena Point, College of Fisheries and Ocean Sciences, University of Alaska Fairbanks, 17101 Point Lena Loop Rd, Juneau, Alaska 99801, USA
+<sup>1</sup> Department of Fisheries at Lena Point, College of Fisheries and Ocean Sciences, University of Alaska Fairbanks, 17101 Point Lena Loop Rd, Juneau, Alaska 99801, USA 
 
 <sup>2</sup>  Habitat and Ecological Processes Research Program, Alaska Fisheries Science Center, National Marine Fisheries Service, NOAA, 7600 Sand Point Way N.E., Seattle, WA 98115, USA
 
@@ -12,7 +13,7 @@ Matthew LH. Cheng,<sup>1</sup> James T. Thorson,<sup>2</sup> James N. Ianelli,<s
 
 
 ### Abstract
-Many demographic processes vary by age and over time, and accounting for this variation within fisheries management remains a key challenge for contemporary stock assessments. Although there is evidence for time, age, and cohort specific effects on various components within stock assessment (e.g., selectivity, growth), methods are lacking to simultaneously estimate autocorrelation over time, among ages, and by cohort while also quantifying residual variation. We develop an approach which facilitates the simultaneous estimation of autocorrelation for time, age, and cohort effects. Utilizing eastern Bering Sea walleye pollock (Gadus chalcogrammus) as a case-study, we conduct a factorial experiment and demonstrate differences in predicted weight-at-age values from models that estimate different combinations of correlation parameters. We show that traditional model selection tools can be used to identify the relative evidence and magnitude of age, time, and cohort effects. We show that this method be easily integrated as a routine option within next-generation stock assessments, and generalizes widely-used options in existing assessment frameworks (e.g., WHAM and SAM).  Code is available in a GitHub repository that replicates our analysis and includes a Template Model Builder function for assembling the precision matrix for easy adoption in other software packages.
+Many demographic processes vary by age and over time, but are also hypothesized to exhibit cohort-specific patterns in variation; accounting for this variation within fisheries management remains a key challenge for contemporary stock assessments. Although there is evidence for time, age, and cohort specific effects on various components within stock assessment (e.g., selectivity, growth), methods are lacking to simultaneously estimate autocorrelation over time, among ages, and by cohort while also quantifying residual variation. We demonstrate an approach that facilitates the simultaneous estimation of autocorrelation for time, age, and cohort effects. Utilizing eastern Bering Sea walleye pollock (Gadus chalcogrammus) as a case-study, we conduct a factorial experiment to demonstrate differences in predicted weight-at-age values from models that estimate different combinations of correlation among parameters. We show that traditional model selection tools can be used to identify the relative evidence for, and magnitude of, age, time, and cohort effects. We show that this method can be easily integrated as a routine option within next-generation stock assessments, and generalizes widely-used options in existing assessment frameworks (e.g., WHAM and SAM). Code is available in a GitHub repository that replicates our analysis and includes a Template Model Builder function for assembling the precision matrix for easy adoption in other software packages.
 
 
 ### Keywords
