@@ -188,8 +188,7 @@ tile_plot <- ggplot(WAA_re_df_all %>% filter(yrs <= 2021),
 
 line_plot <- ggplot(WAA_re_df_all %>% 
                       filter(ages %in% c(seq(3, 15, 2)),
-                             yrs <= 2021,
-                             model %in% c("None", "Year+Age+Cohort")), 
+                             yrs <= 2021), 
                       aes(x = factor(yrs), y = vals, color = factor(ages),
                       group = factor(ages))) +
   geom_line(alpha = 1, size = 1.6) +
@@ -205,12 +204,12 @@ line_plot <- ggplot(WAA_re_df_all %>%
         legend.title = element_text(size = 21),
         legend.text = element_text(size = 18),
         strip.text = element_text(size = 21),
-        legend.position = c(0.08, 0.92),
+        legend.position = c(0.07, 0.92),
         legend.background = element_blank(),
         legend.key.width = unit(0.75, "cm"))
 
 # Now, plot!
-png(here("figs", "ebs_pollock_WAA_models_tile.png"), width = 1400, height = 1000)
+png(here("figs", "ebs_pollock_WAA_models_tile.png"), width = 1600, height = 1300)
 
 plot_grid(tile_plot, line_plot, rel_heights = c(0.8, 1), axis = "bl", align = "hv",
           ncol = 1, labels = c("A", "B"), hjust = c(-2, -2),  
