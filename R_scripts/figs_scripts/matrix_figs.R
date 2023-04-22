@@ -38,7 +38,11 @@ set.seed(666)
 for(i in 1:length(pcorr_age)) {
   
   # Make precision matrix
-  Q = make_precision(n_a, n_t, pcorr_age[i], pcorr_year[i], pcorr_cohort[i], var_value,
+  Q = make_precision(n_a, n_t, 
+                     pcorr_age = pcorr_age[i], 
+                     pcorr_year =  pcorr_year[i], 
+                     pcorr_cohort = pcorr_cohort[i],
+                     var_value,
                      Var_Type = "Marginal")
   # Get dense covariance matrix
   V = solve( Q )

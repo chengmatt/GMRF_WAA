@@ -29,7 +29,7 @@ waa_std_df <- read.csv(here("data", "ebs_waa_std.csv")) %>%
 # Set up TMB data ----------------------------------------
 
 # Number of projection years
-n_proj_years <- 2
+n_proj_years <- 3
 
 # Years
 years <- waa_df$year
@@ -69,7 +69,7 @@ data <- list( years = years,
               Xsd_at = Xsd_at,
               ay_Index = ay_Index,
               n_proj_years = n_proj_years,
-              Var_Param = 0) # Var_Param == 0 Conditional, == 1 Marginal
+              Var_Param = 1) # Var_Param == 0 Conditional, == 1 Marginal
 
 # Input parameters into a list
 parameters <- list( rho_y = 0,

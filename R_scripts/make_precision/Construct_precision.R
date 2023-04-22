@@ -96,20 +96,20 @@ function( n_a,
 }
 
 # Explore
-# n_a = 3
-# n_t = 4
-# pcorr_age = 0.1
-# pcorr_year = 0.6
-# pcorr_cohort = 0.3
+n_a = 3
+n_t = 4
+pcorr_age = 0.1
+pcorr_year = 0.6
+pcorr_cohort = 0.3
 # # #marg_var = condvar / (1 - pcorr_age^2 - pcorr_year^2 - pcorr_cohort^2)
 # var_value= 0.5
 # # var_value* (1 - pcorr_age^2 - pcorr_year^2)
 # 
-# Q = make_precision(n_a, n_t, pcorr_age, pcorr_year, pcorr_cohort, var_value,
-#                    Var_Type = "Conditional")
-# V = solve( Q )
-# Vdense = as.matrix(V)
+Q = make_precision(n_a, n_t, pcorr_age, pcorr_year, pcorr_cohort, var_value,
+                   Var_Type = "Conditional")
+V = solve( Q )
+Vdense = as.matrix(V)
 # 
 # # Visualize
-# Y_at = matrix( rmvnorm(n=1, mean=rep(0,n_a*n_t), sigma=Vdense), nrow=n_a, ncol=n_t )
+Y_at = matrix( rmvnorm(n=1, mean=rep(0,n_a*n_t), sigma=Vdense), nrow=n_a, ncol=n_t )
 # image( y=seq_len(n_a), x=seq_len(n_t), z=t(Y_at), xlab="Year", ylab="Age" )
