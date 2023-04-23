@@ -28,7 +28,7 @@ mixed-effects, stock assessment, state-space, age-and time-varying, cohort effec
 |R_scripts| Contains scripts for model runs, visualizations, and constructing a precision matrix with marginal variance |
 |src| Contains source code for TMB model, which is compiled through R|
 |test|R scripts testing the development of the TMB model and checks for correct model dimensions|
-|output| Model outputs from 2x2x2 factorial experiment |
+|output| Model outputs from 2x2x2 factorial model formulations |
 
 ### Specification of the Precision Matrix
 | Purpose  | Location |
