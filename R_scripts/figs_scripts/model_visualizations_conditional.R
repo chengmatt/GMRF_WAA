@@ -187,12 +187,11 @@ tile_plot <- ggplot(WAA_re_df_all %>% filter(yrs <= 2021),
         legend.key.width = unit(1.5, "cm"))
 
 line_plot <- ggplot(WAA_re_df_all %>% 
-                      filter(ages %in% c(seq(3, 15, 2)),
-                             yrs <= 2021), 
+                      filter(ages %in% c(seq(3, 15, 2))), 
                     aes(x = factor(yrs), y = vals, color = factor(ages),
                         group = factor(ages))) +
+  geom_vline(aes(xintercept = factor(2022)), lty = 2, size = 0.75) +
   geom_line(alpha = 1, size = 1.6) +
-  # geom_text(aes(label = ages), size = 4.5) +
   scale_x_discrete(breaks = seq(1990, 2020, 5)) +
   ggsci::scale_color_jco( ) +
   theme_bw() +
