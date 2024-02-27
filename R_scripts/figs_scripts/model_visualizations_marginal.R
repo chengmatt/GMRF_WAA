@@ -222,8 +222,7 @@ dev.off()
 
 # Get CV and calculate 95% normal CIs
 WAA_re_df_all <- WAA_re_df_all %>% 
-  mutate(CV = (sd / vals) * 100,
-         lwr_95 = exp(vals - (1.96 * sd)),
+  mutate(lwr_95 = exp(vals - (1.96 * sd)),
          upr_95 = exp(vals + (1.96 * sd)),
          vals = exp(vals))
 
