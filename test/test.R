@@ -8,6 +8,9 @@
 library(here)
 library(tidyverse)
 library(TMB)
+library(tmbstan)
+library(rstan)
+library(shinystan)
 
 # Load in WAA matrix (only use fishery data)
 waa_df <- read.csv(here("data", "ebs_waa.csv")) %>% 
@@ -53,6 +56,7 @@ Xcv_at <- sqrt( (exp(Xse_at^2) - 1) )
 
 # Now convert back to sd in lognormal space
 Xsd_at <- sqrt((log((Xcv_at)^2 + 1))/(log(10)^2))
+Xsd_at[,1:5] = 30
 
 # Create an index for ages and years to feed into TMB, which helps construct the precision matrix
 ay_Index <- as.matrix(expand.grid("age" = seq_len(length(ages)), 
@@ -71,9 +75,9 @@ data <- list( years = years,
               Var_Param = 0) # Var_Param == 0 Conditional, == 1 Marginal
 
 # Input parameters into a list
-parameters <- list( rho_y = 0,
-                    rho_a = 0,
-                    rho_c = 0,
+parameters <- list( rho_y = 0.1,
+                    rho_a = 0.1,
+                    rho_c = 0.1,
                     log_sigma2 = log(0.1),
                     ln_L0 = log(45),
                     ln_Linf = log(80),  # Fixed at arbitrary value
@@ -81,7 +85,7 @@ parameters <- list( rho_y = 0,
                     ln_alpha = log(3.5e-7), # Start alpha at a reasonable space 
                     # Starting value for alpha derived from a run where none of the rhos were estimated.
                     ln_beta = log(3), # Fix at isometric
-                    ln_Y_at = array(0,dim=dim(X_at))) 
+                    ln_Y_at = array(0.1,dim=dim(X_at))) 
 
 # Turn params off
 map = list( "ln_Linf" = factor(NA),
@@ -89,6 +93,7 @@ map = list( "ln_Linf" = factor(NA),
 )
 
 compile("GMRF_WAA.cpp")
+dyn.unload(dynlib("GMRF_WAA"))
 dyn.load(dynlib("GMRF_WAA"))
 
 # Now, make AD model function
@@ -97,12 +102,16 @@ waa_model <- MakeADFun(data = data, parameters = parameters,
                        DLL = "GMRF_WAA",
                        map = map, silent = FALSE)
 
+
 report = waa_model$report()
-diag(solve(report$Q_sparse))
+# diag(solve(report$Q_sparse))
 
 # Now, optimize the function
+start = Sys.time()
 waa_optim <- stats::nlminb(waa_model$par, waa_model$fn, waa_model$gr,  
                            control = list(iter.max = 1e5, eval.max = 1e5))
+end = Sys.time()
+end - start
 
 report = waa_model$report()
 plot(report$mu_at[,1], type = "l")
@@ -111,7 +120,7 @@ plot(report$mu_at[,1], type = "l")
 sd_rep <- sdreport(waa_model)
 
 # Check marginal variance
-diag(solve(report$Q_sparse))
+# diag(solve(report$Q_sparse))
 
 # Visualize sparse matrix
 Matrix::image(waa_model$env$spHess(random=TRUE))
@@ -131,8 +140,8 @@ Q = waa_model$report()$Q
 V = solve(Q)
 diag(V)
 R = cov2cor(V)
-P_at = matrix( R[,403], nrow=length(ages), ncol=length(years) + n_proj_years)
-image(t(P_at)) 
+P_at = matrix( R[,429], nrow=length(ages), ncol=length(years) + n_proj_years)
+fields::image.plot(t(P_at)) 
 
 
 # Extract values ----------------------------------------------------------
@@ -201,3 +210,173 @@ ggplot(WAA_all %>% filter(Type == "Random"),
         legend.title = element_text(size = 17),
         legend.text = element_text(size = 15),
         legend.position = "none")
+
+
+# Centering Test ----------------------------------------------------------
+
+compile("GMRF_WAA_test.cpp")
+dyn.unload(dynlib("GMRF_WAA_test"))
+dyn.load(dynlib("GMRF_WAA_test"))
+
+# Now, input these components into a data list
+data <- list( years = years,
+              ages = ages,
+              X_at = X_at,
+              Xsd_at = Xsd_at,
+              ay_Index = ay_Index,
+              n_proj_years = n_proj_years,
+              Var_Param = 1, # Var_Param == 0 Conditional, == 1 Marginal
+              centered = 0) # Cenetered ==0, Non-centered == 1
+
+# Input parameters into a list
+parameters <- list( rho_y = 0.1,
+                    rho_a = 0.1,
+                    rho_c = 0.1,
+                    log_sigma2 = log(0.1),
+                    ln_L0 = log(45),
+                    ln_Linf = log(80),  # Fixed at arbitrary value
+                    ln_k = log(0.15),
+                    ln_alpha = log(3.5e-7), # Start alpha at a reasonable space 
+                    # Starting value for alpha derived from a run where none of the rhos were estimated.
+                    ln_beta = log(3), # Fix at isometric
+                    eps_at = array(0.1,dim=dim(X_at))) 
+
+# Turn params off
+map = list( "ln_Linf" = factor(NA),
+            "ln_beta" = factor(NA)
+)
+
+# Now, make AD model function
+waa_model <- MakeADFun(data = data, parameters = parameters, 
+                       random = "eps_at",
+                       DLL = "GMRF_WAA_test",
+                       map = map, silent = FALSE)
+
+# Now, optimize the function
+start = Sys.time()
+waa_optim <- stats::nlminb(waa_model$par, waa_model$fn, waa_model$gr,  
+                           control = list(iter.max = 1e5, eval.max = 1e5))
+end = Sys.time()
+end - start
+
+sd_rep <- sdreport(waa_model)
+
+# STAN exploration --------------------------------------------------------
+
+# run tmb stan on this
+options(mc.cores = 4)
+init_list = function() {
+  list( "rho_y" = rnorm(1, 0.22711341, 0.01),
+        "rho_a" = rnorm(1, 0.70905324, 0.01),
+        "rho_c" = rnorm(1, 0.06914852, 0.01),
+        "log_sigma2" = rnorm(1, log(0.01690431), 0.01),
+        "ln_L0" = rnorm(1, log(45), 0.01),
+        "ln_Linf" = log(80),  # Fixed at arbitrary value
+        "ln_k" = rnorm(1, log(0.15), 0.01),
+        "ln_alpha" = rnorm(1, log(3.5e-6), 0.01), # Start alpha at a reasonable space 
+        # Starting value for alpha derived from a run where none of the rhos were estimated.
+        "ln_beta" = log(3), # Fix at isometric
+        "eps_at" = array(rnorm(length(X_at), waa_model$env$parList()$eps_at, 0.01),dim=dim(X_at))) 
+}
+
+# Marginal - centered
+data <- list( years = years,
+              ages = ages,
+              X_at = X_at,
+              Xsd_at = Xsd_at,
+              ay_Index = ay_Index,
+              n_proj_years = n_proj_years,
+              Var_Param = 1, # Var_Param == 0 Conditional, == 1 Marginal
+              centered = 0) # Cenetered ==0, Non-centered == 1
+
+# Input parameters into a list
+parameters <- list( rho_y = 0.1,
+                    rho_a = 0.1,
+                    rho_c = 0.1,
+                    log_sigma2 = log(0.1),
+                    ln_L0 = log(45),
+                    ln_Linf = log(80),  # Fixed at arbitrary value
+                    ln_k = log(0.15),
+                    ln_alpha = log(3.5e-7), # Start alpha at a reasonable space 
+                    # Starting value for alpha derived from a run where none of the rhos were estimated.
+                    ln_beta = log(3), # Fix at isometric
+                    eps_at = array(0.1,dim=dim(X_at))) 
+
+# Turn params off
+map = list( "ln_Linf" = factor(NA),
+            "ln_beta" = factor(NA)
+)
+
+# Now, make AD model function
+waa_model_margC <- MakeADFun(data = data, parameters = parameters, 
+                       random = "eps_at",
+                       DLL = "GMRF_WAA_test",
+                       map = map, silent = FALSE)
+
+# run tmb stan
+waa_model_margC_stan = tmbstan(waa_model_margC, chains = 4, iter = 2000, 
+                         init = "last.par.best")
+saveRDS(waa_model_margC_stan, file = here("cent_marg.RData"))
+# extract values
+samples_margC = rstan::extract(object = waa_model_margC_stan, inc_warmup=TRUE)
+rstan::traceplot(waa_model_margC_stan) # trace plot
+rstan::stan_rhat(waa_model_margC_stan) # rhats
+shinystan::launch_shinystan(waa_model_margC_stan) # shiny stan
+pairs(waa_model_margC_stan, pars=c("rho_a", "rho_y", "rho_c", 'log_sigma2'))
+
+par(mfrow = c(3,2))
+for(i in 1:6) plot(samples_margC$log_sigma2~samples_margC$eps_at[,i]) # sigma vs. random effects
+dev.off()
+
+# Marginal - noncentered
+data <- list( years = years,
+              ages = ages,
+              X_at = X_at,
+              Xsd_at = Xsd_at,
+              ay_Index = ay_Index,
+              n_proj_years = n_proj_years,
+              Var_Param = 1, # Var_Param == 0 Conditional, == 1 Marginal
+              centered = 1) # Cenetered ==0, Non-centered == 1
+
+# Input parameters into a list
+parameters <- list( rho_y = 0.1,
+                    rho_a = 0.1,
+                    rho_c = 0.1,
+                    log_sigma2 = log(0.1),
+                    ln_L0 = log(45),
+                    ln_Linf = log(80),  # Fixed at arbitrary value
+                    ln_k = log(0.15),
+                    ln_alpha = log(3.5e-7), # Start alpha at a reasonable space 
+                    # Starting value for alpha derived from a run where none of the rhos were estimated.
+                    ln_beta = log(3), # Fix at isometric
+                    eps_at = array(0.1,dim=dim(X_at))) 
+
+# Turn params off
+map = list( "ln_Linf" = factor(NA),
+            "ln_beta" = factor(NA)
+)
+
+# Now, make AD model function
+waa_model_margNC <- MakeADFun(data = data, parameters = parameters, 
+                              random = "eps_at",
+                              DLL = "GMRF_WAA_test",
+                              map = map, silent = FALSE)
+
+# run tmb stan
+waa_model_margNC_stan = tmbstan(waa_model_margNC, chains = 4, iter = 2000, 
+                                init = "last.par.best")
+
+saveRDS(waa_model_margNC_stan, file = here("non_cent_marg.RData"))
+# extract values
+samples_margC = rstan::extract(object = waa_model_margNC_stan, inc_warmup=TRUE)
+rstan::traceplot(waa_model_margNC_stan) # trace plot
+rstan::stan_rhat(waa_model_margNC_stan) # rhats
+shinystan::launch_shinystan(waa_model_margNC_stan) # shiny stan
+pairs(waa_model_margNC_stan, pars=c("rho_a", "rho_y", "rho_c", 'log_sigma2'))
+
+par(mfrow = c(3,2))
+for(i in 1:6) plot(samples_margC$log_sigma2~samples_margC$eps_at[,i]) # sigma vs. random effects
+dev.off()
+
+
+

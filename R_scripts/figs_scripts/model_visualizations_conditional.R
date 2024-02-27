@@ -106,18 +106,19 @@ mean_WAA_all <- data.frame()
 
 # extract waa_re values
 for(n_fact in 1:nrow(map_factorial)) {
-  
-  # coerce these values into a matrix
+
+  # coerce into matrix
   WAA_re <- matrix(
-    t(exp(models[[n_fact]]$env$parList()$ln_Y_at)),
-    ncol = length(ages), nrow = length(years)
+    models[[n_fact]]$sd_rep$value,
+    ncol = length(years), nrow = length(ages)
   )
-  
+  WAA_re <- t(WAA_re)
   # standard deviations
   WAA_sd <- matrix(
-    t(sqrt(models[[n_fact]]$sd_rep$diag.cov.random)),
-    ncol = length(ages), nrow = length(years)
+    models[[n_fact]]$sd_rep$sd,
+    ncol = length(years), nrow = length(ages)
   )
+  WAA_sd <- t(WAA_sd)
   
   # Next, melt into a dataframe
   WAA_re_df <- reshape2::melt(WAA_re)
@@ -164,7 +165,7 @@ mean_WAA_all <- mean_WAA_all %>%
 # Compute anomaly relative to the mean
 WAA_re_df_all <- WAA_re_df_all %>% 
   left_join(mean_WAA_all, by = c("ages", "model")) %>% 
-  mutate(anom = (vals - mean_waa) / mean_waa)
+  mutate(anom = (exp(vals) - mean_waa) / mean_waa)
 
 tile_plot <- ggplot(WAA_re_df_all %>% filter(yrs <= 2021), 
                     aes(y = factor(ages), x = factor(yrs), fill = anom)) +
@@ -222,17 +223,18 @@ dev.off()
 # Get CV and calculate 95% normal CIs
 WAA_re_df_all <- WAA_re_df_all %>% 
   mutate(CV = (sd / vals) * 100,
-         lwr_95 = vals - (1.96 * sd),
-         upr_95 = vals + (1.96 * sd))
+         lwr_95 = exp(vals - (1.96 * sd)),
+         upr_95 = exp(vals + (1.96 * sd)),
+         vals = exp(vals))
 
 png(here("figs", "proj_waa_sd_cond.png"), width = 1400, height = 800)
 ggplot(WAA_re_df_all %>% 
-         filter(yrs > 2018, model %in% c("None", "Year+Age+Cohort")), 
+         filter(yrs > 2018, yrs <= 2024, model %in% c("None", "Year+Age+Cohort")), 
        aes(x = yrs, y = vals, color = factor(model), group = factor(model),
            fill = model)) +
-  annotate(geom = "rect", xmin = 2022, xmax = 2024, ymin = -Inf, ymax = Inf, 
+  annotate(geom = "rect", xmin = 2022, xmax = 2024, ymin = -Inf, ymax = Inf,
            fill = "grey", alpha = 0.75, lty = 2, size = 1.5, color = "black") +
-  geom_ribbon(aes(ymin = lwr_95, ymax = upr_95), alpha = 0.1) +
+  geom_ribbon(aes(ymin = lwr_95, ymax = upr_95), alpha = 0.35, color = NA) +
   geom_line(alpha = 1, size = 1.75) +
   ggsci::scale_color_nejm( ) +
   ggsci::scale_fill_nejm( ) +

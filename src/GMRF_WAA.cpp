@@ -205,7 +205,7 @@ Type objective_function<Type>::operator() ()
   for(int a = 0; a < X_at.rows(); a++) {
   for(int t = 0; t < X_at.cols(); t++) {
     if( !isNA(X_at(a,t)) ){
-      jnLL -= dnorm(ln_Y_at(a,t), log(X_at(a,t)), Xsd_at(a,t), true);
+      if(Xsd_at(a,t) > 0) jnLL -= dnorm(log(X_at(a,t)), ln_Y_at(a,t), Xsd_at(a,t), true); // only evaluate if sd > 0
     } // if we are not doing projections
   } // t loop
 } // a loop

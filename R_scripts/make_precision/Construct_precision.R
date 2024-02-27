@@ -96,19 +96,21 @@ function( n_a,
 }
 
 # Explore
-n_a = 3
-n_t = 4
-pcorr_age = 0.1
-pcorr_year = 0.6
-pcorr_cohort = 0.3
+n_a = 5
+n_t = 2
+pcorr_age = 0.5
+pcorr_year = 0.3
+pcorr_cohort = 0.2
 # # #marg_var = condvar / (1 - pcorr_age^2 - pcorr_year^2 - pcorr_cohort^2)
-# var_value= 0.5
+var_value= 0.01
 # # var_value* (1 - pcorr_age^2 - pcorr_year^2)
 # 
 Q = make_precision(n_a, n_t, pcorr_age, pcorr_year, pcorr_cohort, var_value,
-                   Var_Type = "Conditional")
+                   Var_Type = "Marginal")
 V = solve( Q )
 Vdense = as.matrix(V)
+image(Vdense)
+
 # 
 # # Visualize
 Y_at = matrix( rmvnorm(n=1, mean=rep(0,n_a*n_t), sigma=Vdense), nrow=n_a, ncol=n_t )
