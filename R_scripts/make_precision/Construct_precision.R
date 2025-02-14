@@ -96,7 +96,7 @@ function( n_a,
 }
 
 # Explore
-n_a = 5
+n_a = 2
 n_t = 2
 pcorr_age = 0.5
 pcorr_year = 0.3
