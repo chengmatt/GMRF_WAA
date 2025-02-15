@@ -141,7 +141,7 @@ waa_std_df <- read.csv(here("data", "ebs_waa_std.csv")) %>%
   dplyr::select(-source)
 
 # Number of projection years
-n_proj_years <- 0
+n_proj_years <- 5
 
 # Years
 years <- waa_df$year
@@ -214,16 +214,17 @@ try_improve <- tryCatch(expr =
                           }
                         , error = function(e){e}, warning = function(w){w})
 
-# max(growth_3d_model$gr())
-# growth_3d_model$optim <- growth_optim # Save optimized model results
-growth_3d_model$sd_rep <- RTMB::sdreport(growth_3d_model) # Get sd report ~ 13 mins
+max(growth_3d_model$gr())
+growth_3d_model$optim <- growth_optim # Save optimized model results
+growth_3d_model$sd_rep <- RTMB::sdreport(growth_3d_model) # Get sd report
 end_time = Sys.time()
 end_time - start_time
 growth_3d_model$rep <- growth_3d_model$report(growth_3d_model$env$last.par.best) # Get report
+growth_3d_model$sd_rep
 
-image(exp(growth_3d_model$rep$ln_Y_at))
-
-growth_3d_model$sd_rep 
-
+reshape2::melt(exp(growth_3d_model$rep$ln_Y_at)) %>% 
+  ggplot(aes(x = Var2, y = value)) +
+  geom_line() +
+  facet_wrap(~Var1, scales = 'free')
 
 
