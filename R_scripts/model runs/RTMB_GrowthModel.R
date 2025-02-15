@@ -12,14 +12,14 @@ library(RTMB)
 #' @param pcorr_year correaltions for year
 #' @param pcorr_cohort correlaitons for cohort
 #' @param ln_var_value log space variance
-#' @param Var_Type variance type == 0, marginal (stationary and slower run time), == 1 conditional (non-statationary, faster run time)
+#' @param Var_Param variance type == 0, marginal (stationary and slower run time), == 1 conditional (non-statationary, faster run time)
 #'
 #' @returns Sparse precision matrix dimensioned by n_ages * n_years, n_ages * n_years
 #' @export
 #'
 #' @examples
 #' 
-Get_3d_precision <- function(n_ages, n_yrs, pcorr_age, pcorr_year, pcorr_cohort, ln_var_value, Var_Type){
+Get_3d_precision <- function(n_ages, n_yrs, pcorr_age, pcorr_year, pcorr_cohort, ln_var_value, Var_Param){
   
   require(Matrix)
   
@@ -55,8 +55,10 @@ Get_3d_precision <- function(n_ages, n_yrs, pcorr_age, pcorr_year, pcorr_cohort,
   # identity matrix
   I = as(diag(1, n_ages * n_yrs, n_ages * n_yrs), "sparseMatrix")
   
+  if(Var_Param == 0) d = var_value # conditional variance (non-stationary variance)
+  
   # Solve Omega recursively for stationary variance (accumulator function)
-  if(Var_Type == 0) {
+  if(Var_Param == 1) {
     L = solve(I-B) # solve to get accumulator function for stationary variance
     d = rep(0, nrow(index))
     for(n in 1:nrow(index) ){
@@ -68,8 +70,6 @@ Get_3d_precision <- function(n_ages, n_yrs, pcorr_age, pcorr_year, pcorr_cohort,
       }
     } # end n loop
   } # end marginal variance (stationary variance)
-  
-  if(Var_Type == 1) d = var_value # conditional variance (non-stationary variance)
   
   # omega matrix
   Omega_inv = diag(1/d, n_ages * n_yrs, n_ages * n_yrs)
@@ -83,7 +83,7 @@ growth_3d = function(pars) {
   RTMB::getAll(pars, data) # load in starting values and data
 
   # make precision
-  Q_sparse = Get_3d_precision(nrow(ln_Y_at), ncol(ln_Y_at), rho_a, rho_y, rho_c, log_sigma2, Var_Type)
+  Q_sparse = Get_3d_precision(nrow(ln_Y_at), ncol(ln_Y_at), rho_a, rho_y, rho_c, log_sigma2, Var_Param)
   
   jnLL = 0 # set up jnLL 
   
@@ -176,7 +176,8 @@ data <- list( years = years,
               X_at = X_at,
               Xsd_at = Xsd_at,
               ay_Index = ay_Index,
-              Var_Type = 1) 
+              n_proj_years = n_proj_years,
+              Var_Param = 0) # conditional
 
 # Input parameters into a list
 parameters <- list( rho_y = 0,
@@ -195,6 +196,7 @@ map <- list(
   ln_Linf = factor(NA), ln_beta = factor(NA)
 )
 
+start_time = Sys.time()
 # make AD model function
 growth_3d_model <- RTMB::MakeADFun(growth_3d, parameters = parameters, map = map, random = 'ln_Y_at')
 
@@ -212,14 +214,16 @@ try_improve <- tryCatch(expr =
                           }
                         , error = function(e){e}, warning = function(w){w})
 
-max(growth_3d_model$gr())
-growth_3d_model$optim <- growth_optim # Save optimized model results
+# max(growth_3d_model$gr())
+# growth_3d_model$optim <- growth_optim # Save optimized model results
 growth_3d_model$sd_rep <- RTMB::sdreport(growth_3d_model) # Get sd report ~ 13 mins
+end_time = Sys.time()
+end_time - start_time
 growth_3d_model$rep <- growth_3d_model$report(growth_3d_model$env$last.par.best) # Get report
 
 image(exp(growth_3d_model$rep$ln_Y_at))
 
 growth_3d_model$sd_rep 
-# Get sd report
-waa_model$sd_rep 
+
+
 
