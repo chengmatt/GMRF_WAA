@@ -26,7 +26,7 @@ mixed-effects, stock assessment, state-space, age-and time-varying, cohort effec
 |data| Weight-at-age matrix with standard deviations for EBS walleye pollock |
 |docs| Auxiallary documents describing triple-separability in the VPA context |
 |figs| Contains general figures and model outputs |
-|R_scripts| Contains scripts for model runs, visualizations, and constructing a precision matrix with marginal variance |
+|R_scripts| Contains scripts for model runs, visualizations, and constructing a precision matrix with marginal variance. Also contains scripts for 3dgrmf and 2dar1 WAA models written in RTMB |
 |src| Contains source code for TMB model, which is compiled through R|
 |test|R scripts testing the development of the TMB model and checks for correct model dimensions|
 |output| Model outputs from 2x2x2 factorial model formulations |
