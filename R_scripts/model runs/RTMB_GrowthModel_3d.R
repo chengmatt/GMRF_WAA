@@ -127,7 +127,6 @@ growth_3d = function(pars) {
   return(jnLL)
 }
 
-
 # Run Model ---------------------------------------------------------------
 
 # Load in WAA matrix (only use fishery data)
@@ -141,7 +140,7 @@ waa_std_df <- read.csv(here("data", "ebs_waa_std.csv")) %>%
   dplyr::select(-source)
 
 # Number of projection years
-n_proj_years <- 5
+n_proj_years <- 30
 
 # Years
 years <- waa_df$year
@@ -222,9 +221,8 @@ end_time - start_time
 growth_3d_model$rep <- growth_3d_model$report(growth_3d_model$env$last.par.best) # Get report
 growth_3d_model$sd_rep
 
-reshape2::melt(exp(growth_3d_model$rep$ln_Y_at)) %>% 
-  ggplot(aes(x = Var2, y = value)) +
+reshape2::melt(exp(growth_3d_model$rep$ln_Y_at)) %>% mutate(type = '3d') %>% 
+  mutate(cohort = Var2 - Var1) %>% 
+  ggplot(aes(x = Var2, y = value, color = type)) +
   geom_line() +
   facet_wrap(~Var1, scales = 'free')
-
-
