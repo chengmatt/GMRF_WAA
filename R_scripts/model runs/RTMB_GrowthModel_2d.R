@@ -51,7 +51,7 @@ growth_2d = function(pars) {
   
   if(type == 1) { # iid along ages, 1dar1 along years
     f1 = function(x) sum(dnorm(x, 0, sqrt(sigma2), log = TRUE))
-    f2 = function(x) dautoreg(x, mu = 0, phi = sqrt(sigma2), log = TRUE)
+    f2 = function(x) dautoreg(x, mu = 0, phi = rho_y_trans, log = TRUE)
     jnLL = jnLL - RTMB::dseparable(f1, f2)(eps_at)
   }
   
